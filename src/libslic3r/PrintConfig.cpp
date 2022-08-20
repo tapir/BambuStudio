@@ -264,8 +264,11 @@ void PrintConfigDef::init_common_params()
     //BBS: add "bed_exclude_area"
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Bed exclude area");
-    def->mode = comDevelop;
-    def->set_default_value(new ConfigOptionPoints{});
+    def->tooltip = L("Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. "
+        "The area is expressed as polygon by points in following format: \"XxY, XxY, ...\"");
+    def->mode = comAdvanced;
+    def->gui_type = ConfigOptionDef::GUIType::one_string;
+    def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0) });
 
     def = this->add("elefant_foot_compensation", coFloat);
     def->label = L("Elephant foot compensation");
@@ -290,7 +293,6 @@ void PrintConfigDef::init_common_params()
     def->sidetext = L("mm");
     def->min = 0;
     def->max = 1000;
-    def->readonly = true;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(100.0));
 
@@ -686,7 +688,15 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Don't support the whole bridge area which make support very large. "
                      "Bridge usually can be printing directly without support if not very long");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(true));
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("thick_bridges", coBool);
+    def->label = L("Thick bridges");
+    def->category = L("Layers and Perimeters");
+    def->tooltip = L("If enabled, bridges are more reliable, can bridge longer distances, but may look worse. "
+        "If disabled, bridges look better but are reliable just for shorter bridged distances.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("max_bridge_length", coFloat);
     def->label = L("Max bridge length");
@@ -712,7 +722,7 @@ void PrintConfigDef::init_fff_params()
     def->multiline = true;
     def->full_width = true;
     def->height = 120;
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings { " " });
 
     auto def_top_fill_pattern = def = this->add("top_surface_pattern", coEnum);
@@ -722,10 +732,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("concentric");
     def->enum_values.push_back("zig-zag");
-#if !BBL_RELEASE_TO_PUBLIC
     def->enum_values.push_back("monotonic");
-#endif
-    //BBS: use monotonicline pattern to replace monotonic for top and bottom surface
     def->enum_values.push_back("monotonicline");
     //def->enum_values.push_back("alignedrectilinear");
     //def->enum_values.push_back("hilbertcurve");
@@ -733,9 +740,7 @@ void PrintConfigDef::init_fff_params()
     //def->enum_values.push_back("octagramspiral");
     def->enum_labels.push_back(L("Concentric"));
     def->enum_labels.push_back(L("Zig zag"));
-#if !BBL_RELEASE_TO_PUBLIC
     def->enum_labels.push_back(L("Monotonic"));
-#endif
     def->enum_labels.push_back(L("Monotonic line"));
     //def->enum_labels.push_back(L("Aligned Rectilinear"));
     //def->enum_labels.push_back(L("Hilbert Curve"));
@@ -948,13 +953,15 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
     def->enum_values.push_back("PLA");
-    def->enum_values.push_back("PET");
     def->enum_values.push_back("ABS");
-    def->enum_values.push_back("TPU");
-    def->enum_values.push_back("PA");
-    def->enum_values.push_back("PET-CF");
-    def->enum_values.push_back("PC");
     def->enum_values.push_back("ASA");
+    def->enum_values.push_back("PETG");
+    def->enum_values.push_back("TPU");
+    def->enum_values.push_back("PC");
+    def->enum_values.push_back("PA");
+    def->enum_values.push_back("PA-CF");
+    def->enum_values.push_back("PLA-CF");
+    def->enum_values.push_back("PET-CF");
     def->enum_values.push_back("PVA");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionStrings { "PLA" });
@@ -1627,8 +1634,10 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don't retract when the travel is in infill area absolutely. That means the oozing can't been seen");
-    def->mode = comDevelop;
+    def->tooltip = L("Don't retract when the travel is in infill area absolutely. That means the oozing can't been seen. "
+                     "This can reduce times of retraction for complex model and save printing time, but make slicing and "
+                     "G-code generating slower");
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("ooze_prevention", coBool);
@@ -1965,7 +1974,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(100));
 
     def = this->add("spiral_mode", coBool);
-    def->label = L("Spiral mode");
+    def->label = L("Spiral vase");
     def->tooltip = L("Spiralize smooths out the z moves of the outer contour. "
                      "And turns a solid model into a single walled print with solid bottom layers. "
                      "The final generated model has no seam");
@@ -1973,7 +1982,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("timelapse_no_toolhead", coBool);
-    def->label = L("Timelapse without toolhead");
+    def->label = L("Timelapse");
     def->tooltip = L("Record timelapse video of printing without showing toolhead. In this mode "
                     "the toolhead docks near the excess chute at each layer change, and then "
                     "a snapshot is taken with the chamber camera. When printing finishes a timelapse "
@@ -2007,7 +2016,7 @@ void PrintConfigDef::init_fff_params()
     def->multiline = true;
     def->full_width = true;
     def->height = 12;
-    def->mode = comDevelop;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings { " " });
 
     def = this->add("single_extruder_multi_material", coBool);
@@ -2544,6 +2553,13 @@ void PrintConfigDef::init_fff_params()
         "This may lower the amount of waste and decrease the print time. "
         "If the walls are printed with transparent filament, the mixed color infill will be seen outside");
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("flush_into_support", coBool);
+    def->category = L("Flush options");
+    def->label = L("Flush into objects' support");
+    def->tooltip = L("Purging after filament change will be done inside objects' support. "
+        "This may lower the amount of waste and decrease the print time");
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("flush_into_objects", coBool);
     def->category = L("Flush options");
@@ -3345,12 +3361,6 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         //But now these key-value must be absolute value.
         //Reset to default value by erasing these key to avoid parsing error.
         opt_key = "";
-    } else if (opt_key == "top_surface_pattern" || opt_key == "bottom_surface_pattern") {
-#if BBL_RELEASE_TO_PUBLIC
-        //BBS: replace monotonic pattern to be monotonicline for top and bottom surface
-        if (value == "monotonic")
-            value = "monotonicline";
-#endif
     } else if (opt_key == "filament_type" && value == "PA-CF") {
         value == "PA";
     } else if (opt_key == "inherits_cummulative") {
@@ -3372,7 +3382,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         , "max_volumetric_extrusion_rate_slope_positive", "max_volumetric_extrusion_rate_slope_negative"
 #endif /* HAS_PRESSURE_EQUALIZER */
         // BBS
-        , "thick_bridges","support_sharp_tails","remove_small_overhangs", "support_with_sheath",
+        , "support_sharp_tails","remove_small_overhangs", "support_with_sheath",
         "tree_support_branch_diameter_angle", "tree_support_collision_resolution",
         "small_perimeter_speed", "max_volumetric_speed", "max_print_speed",
         "support_bottom_z_distance", "support_closing_radius", "slicing_mode", "slice_closing_radius",
@@ -3577,7 +3587,7 @@ std::string DynamicPrintConfig::validate()
     }
 }
 
-std::string DynamicPrintConfig::get_filament_type(int id)
+std::string DynamicPrintConfig::get_filament_type(std::string &displayed_filament_type, int id)
 {
     auto* filament_id = dynamic_cast<const ConfigOptionStrings*>(this->option("filament_id"));
     auto* filament_type = dynamic_cast<const ConfigOptionStrings*>(this->option("filament_type"));
@@ -3588,9 +3598,11 @@ std::string DynamicPrintConfig::get_filament_type(int id)
 
     if (!filament_is_support) {
         if (filament_type) {
+            displayed_filament_type = filament_type->get_at(id);
             return filament_type->get_at(id);
         }
         else {
+            displayed_filament_type = "";
             return "";
         }
     }
@@ -3599,25 +3611,33 @@ std::string DynamicPrintConfig::get_filament_type(int id)
         if (is_support) {
             if (filament_id) {
                 if (filament_id->get_at(id) == "GFS00") {
-                    return "Support W";
+                    displayed_filament_type = "Support W";
+                    return "PLA-S";
                 }
                 else if (filament_id->get_at(id) == "GFS01") {
-                    return "Support G";
+                    displayed_filament_type = "Support G";
+                    return "PA-S";
                 }
                 else {
-                    return filament_type->get_at(id) + "-Support";
+                    displayed_filament_type = filament_type->get_at(id);
+                    return filament_type->get_at(id);
                 }
             }
             else {
-                if (filament_type->get_at(id) == "PLA")
-                    return "Support W";
-                else if (filament_type->get_at(id) == "PA")
-                    return "Support G";
-                else
-                    return filament_type->get_at(id) + "-Support";
+                if (filament_type->get_at(id) == "PLA") {
+                    displayed_filament_type = "Support W";
+                    return "PLA-S";
+                } else if (filament_type->get_at(id) == "PA") {
+                    displayed_filament_type = "Support G";
+                    return "PA-S";
+                } else {
+                    displayed_filament_type = filament_type->get_at(id);
+                    return filament_type->get_at(id);
+                }
             }
         }
         else {
+            displayed_filament_type = filament_type->get_at(id);
             return filament_type->get_at(id);
         }
     }

@@ -68,6 +68,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/SideTools.hpp
     GUI/Widgets/WebView.cpp
     GUI/Widgets/WebView.hpp
+    GUI/Widgets/wxStaticText2.cpp
+    GUI/Widgets/wxStaticText2.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
     GUI/AuxiliaryDialog.cpp
@@ -125,8 +127,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoFaceDetector.hpp
     GUI/Gizmos/GLGizmoSeam.cpp
     GUI/Gizmos/GLGizmoSeam.hpp
-    GUI/Gizmos/GLGizmoModifier.cpp
-    GUI/Gizmos/GLGizmoModifier.hpp
     GUI/GLSelectionRectangle.cpp
     GUI/GLSelectionRectangle.hpp
     GUI/Gizmos/GizmoObjectManipulation.cpp
@@ -213,6 +213,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MonitorPage.hpp
     GUI/StatusPanel.cpp
     GUI/StatusPanel.hpp
+    GUI/UpdateErrorMessage.cpp
+    GUI/UpdateErrorMessage.hpp
     GUI/SliceInfoPanel.cpp
     GUI/SliceInfoPanel.hpp
     GUI/CameraPopup.cpp
@@ -221,8 +223,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Monitor.hpp
     GUI/WebViewDialog.cpp
     GUI/WebViewDialog.hpp
-    GUI/WebDailytipDialog.hpp
-    GUI/WebDailytipDialog.cpp
+    GUI/WebDownPluginDlg.hpp
+    GUI/WebDownPluginDlg.cpp
     GUI/WebGuideDialog.hpp
     GUI/WebGuideDialog.cpp
     GUI/WebUserLoginDialog.cpp
@@ -268,12 +270,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/ConfigWizard_private.hpp
     GUI/MsgDialog.cpp
     GUI/MsgDialog.hpp
+    GUI/DownloadProgressDialog.hpp
+    GUI/DownloadProgressDialog.cpp
     GUI/UpdateDialogs.cpp
     GUI/UpdateDialogs.hpp
     GUI/Jobs/Job.hpp
     GUI/Jobs/Job.cpp
     GUI/Jobs/PlaterJob.hpp
     GUI/Jobs/PlaterJob.cpp
+    GUI/Jobs/UpgradeNetworkJob.hpp
+    GUI/Jobs/UpgradeNetworkJob.cpp
     GUI/Jobs/ArrangeJob.hpp
     GUI/Jobs/ArrangeJob.cpp
     GUI/Jobs/OrientJob.hpp
@@ -340,6 +346,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ReleaseNote.cpp
     GUI/Calibration.hpp
     GUI/Calibration.cpp
+    GUI/PrintOptionsDialog.hpp
+    GUI/PrintOptionsDialog.cpp
     Utils/json_diff.hpp
     Utils/json_diff.cpp
     GUI/KBShortcutsDialog.hpp

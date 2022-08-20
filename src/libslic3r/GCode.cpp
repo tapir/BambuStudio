@@ -344,7 +344,9 @@ bool GCode::gcode_label_objects = false;
                 float purge_length = purge_volume / filament_area;
 
                 int old_filament_e_feedrate = gcode_writer.extruder() != nullptr ? (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(previous_extruder_id) / filament_area) : 200;
+                old_filament_e_feedrate = old_filament_e_feedrate == 0 ? 100 : old_filament_e_feedrate;
                 int new_filament_e_feedrate = (int)(60.0 * full_config.filament_max_volumetric_speed.get_at(new_extruder_id) / filament_area);
+                new_filament_e_feedrate = new_filament_e_feedrate == 0 ? 100 : new_filament_e_feedrate;
 
                 config.set_key_value("max_layer_z", new ConfigOptionFloat(gcodegen.m_max_layer_z));
                 config.set_key_value("relative_e_axis", new ConfigOptionBool(RELATIVE_E_AXIS));
@@ -2542,6 +2544,24 @@ GCode::LayerResult GCode::process_layer(
                 // Shall the support interface be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
                 bool            interface_dontcare = object.config().support_interface_filament.value == 0;
 
+                // BBS: apply wiping overridden extruders
+                WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();
+                if (support_dontcare) {
+                    int extruder_override = wiping_extrusions.get_support_extruder_overrides(&object);
+                    if (extruder_override >= 0) {
+                        support_extruder = extruder_override;
+                        support_dontcare = false;
+                    }
+                }
+
+                if (interface_dontcare) {
+                    int extruder_override = wiping_extrusions.get_support_interface_extruder_overrides(&object);
+                    if (extruder_override >= 0) {
+                        interface_extruder = extruder_override;
+                        interface_dontcare = false;
+                    }
+                }
+
                 // BBS: try to print support base with a filament other than interface filament
                 if (support_dontcare && !interface_dontcare) {
                     unsigned int dontcare_extruder = first_extruder_id;
@@ -2609,7 +2629,16 @@ GCode::LayerResult GCode::process_layer(
                 // Shall the support interface be printed with the active extruder, preferably with non-soluble, to avoid tool changes?
                 bool            interface_dontcare = object.config().support_interface_filament.value == 0;
 
+                // BBS: apply wiping overridden extruders
                 WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();
+                if (support_dontcare) {
+                    int extruder_override = wiping_extrusions.get_support_extruder_overrides(&object);
+                    if (extruder_override >= 0) {
+                        support_extruder = extruder_override;
+                        support_dontcare = false;
+                    }
+                }
+
                 if (support_dontcare || interface_dontcare) {
                     // Some support will be printed with "don't care" material, preferably non-soluble.
                     // Is the current extruder assigned a soluble filament?
@@ -2897,8 +2926,12 @@ GCode::LayerResult GCode::process_layer(
 
                     // BBS
                     WipingExtrusions& wiping_extrusions = const_cast<LayerTools&>(layer_tools).wiping_extrusions();
+                    bool support_overridden = wiping_extrusions.is_support_overridden(layer.object());
+                    bool support_intf_overridden = wiping_extrusions.is_support_interface_overridden(layer.object());
+
                     ExtrusionRole support_extrusion_role = instance_to_print.object_by_extruder.support_extrusion_role;
-                    if (print_wipe_extrusions == 0)
+                    bool is_overridden = support_extrusion_role == erSupportMaterialInterface ? support_intf_overridden : support_overridden;
+                    if (is_overridden == (print_wipe_extrusions != 0))
                         support_eec.entities = filter_by_extrusion_role(instance_to_print.object_by_extruder.support->entities, instance_to_print.object_by_extruder.support_extrusion_role);
 
                     for (auto& ptr : support_eec.entities)
@@ -3892,6 +3925,7 @@ std::string GCode::set_extruder(unsigned int extruder_id, double print_z)
         old_filament_temp = m_config.nozzle_temperature.get_at(previous_extruder_id);
         wipe_volume = flush_matrix[previous_extruder_id * number_of_extruders + extruder_id];
         old_filament_e_feedrate = (int)(60.0 * m_config.filament_max_volumetric_speed.get_at(previous_extruder_id) / filament_area);
+        old_filament_e_feedrate = old_filament_e_feedrate == 0 ? 100 : old_filament_e_feedrate;
     }
     else {
         old_retract_length = 0.f;
@@ -3902,6 +3936,7 @@ std::string GCode::set_extruder(unsigned int extruder_id, double print_z)
     }
     float wipe_length = wipe_volume / filament_area;
     int new_filament_e_feedrate = (int)(60.0 * m_config.filament_max_volumetric_speed.get_at(extruder_id) / filament_area);
+    new_filament_e_feedrate = new_filament_e_feedrate == 0 ? 100 : new_filament_e_feedrate;
 
     DynamicConfig dyn_config;
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt((int)(m_writer.extruder() != nullptr ? m_writer.extruder()->id() : -1)));

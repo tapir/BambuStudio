@@ -557,7 +557,7 @@ Slic3r::GUI::PageShp Tab::add_options_page(const wxString& title, const std::str
         if (icon_idx == -1) {
             // Add a new icon to the icon list.
             m_scaled_icons_list.push_back(ScalableBitmap(this, icon, 32, false, true));
-            m_icons->Add(m_scaled_icons_list.back().bmp());
+            //m_icons->Add(m_scaled_icons_list.back().bmp());
             icon_idx = ++m_icon_count;
             m_icon_index[icon] = icon_idx;
         }
@@ -851,7 +851,7 @@ void TabPrinter::init_options_list()
 
     for (const std::string& opt_key : m_config->keys())
     {
-        if (opt_key == "printable_area") {
+        if (opt_key == "printable_area" || opt_key == "bed_exclude_area") {
             m_options_list.emplace(opt_key, m_opt_status_value);
             continue;
         }
@@ -1180,7 +1180,7 @@ void Tab::msw_rescale()
     m_icons->RemoveAll();
     m_icons = new wxImageList(m_scaled_icons_list.front().bmp().GetWidth(), m_scaled_icons_list.front().bmp().GetHeight(), false);
     for (ScalableBitmap& bmp : m_scaled_icons_list)
-        m_icons->Add(bmp.bmp());
+        //m_icons->Add(bmp.bmp());
     m_tabctrl->AssignImageList(m_icons);
 
     // rescale options_groups
@@ -1214,7 +1214,7 @@ void Tab::sys_color_changed()
     m_icons->RemoveAll();
     m_icons = new wxImageList(m_scaled_icons_list.front().bmp().GetWidth(), m_scaled_icons_list.front().bmp().GetHeight(), false);
     for (ScalableBitmap& bmp : m_scaled_icons_list)
-        m_icons->Add(bmp.bmp());
+        //m_icons->Add(bmp.bmp());
     m_tabctrl->AssignImageList(m_icons);
 
     // Colors for ui "decoration"
@@ -1374,6 +1374,12 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "enable_prime_tower" || opt_key == "single_extruder_multi_material" || opt_key == "extruders_count" )
         update_wiping_button_visibility();
 
+    //popup message dialog when first selected
+    if (opt_key == "timelapse_no_toolhead" && boost::any_cast<bool>(value))
+        show_timelapse_warning_dialog();
+    
+
+
     // BBS
 #if 0
     if (opt_key == "extruders_count")
@@ -1389,6 +1395,16 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     update();
     m_active_page->update_visibility(m_mode, true);
     m_page_view->GetParent()->Layout();
+}
+
+void Tab::show_timelapse_warning_dialog() {
+    if (!m_is_timelapse_wipe_tower_already_prompted) {
+        wxString      msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
+                                "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\".\n"));
+        MessageDialog dialog(nullptr, msg_text, "", wxICON_WARNING | wxOK);
+        dialog.ShowModal();
+        m_is_timelapse_wipe_tower_already_prompted = true;
+    }
 }
 
 // Show/hide the 'purging volumes' button
@@ -1502,7 +1518,6 @@ void Tab::apply_config_from_cache()
         update_dirty();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": exit, was_applied=%1%")%was_applied;
 }
-
 
 // Call a callback to update the selection of presets on the plater:
 // To update the content of the selection boxes,
@@ -1756,7 +1771,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("minimum_sparse_infill_area");
         optgroup->append_single_option_line("infill_combination");
         optgroup->append_single_option_line("detect_narrow_internal_solid_infill");
-        optgroup->append_single_option_line("reduce_infill_retraction");
 
     page = add_options_page(L("Speed"), "empty");
         optgroup = page->new_optgroup(L("Initial layer speed"), 15);
@@ -1827,8 +1841,9 @@ void TabPrint::build()
         //optgroup->append_single_option_line("support_interface_loop_pattern");
 
         optgroup->append_single_option_line("support_object_xy_distance");
-        //optgroup->append_single_option_line("bridge_no_support");
+        optgroup->append_single_option_line("bridge_no_support");
         optgroup->append_single_option_line("max_bridge_length");
+        optgroup->append_single_option_line("thick_bridges");
         //optgroup->append_single_option_line("independent_support_layer_height");
 
     page = add_options_page(L("Others"), "advanced");
@@ -1852,6 +1867,7 @@ void TabPrint::build()
         optgroup = page->new_optgroup(L("Flush options"));
         optgroup->append_single_option_line("flush_into_infill");
         optgroup->append_single_option_line("flush_into_objects");
+        optgroup->append_single_option_line("flush_into_support");
 
         optgroup = page->new_optgroup(L("Special mode"));
         optgroup->append_single_option_line("print_sequence");
@@ -1875,7 +1891,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("fuzzy_skin_thickness");
 
 
-        optgroup = page->new_optgroup(L("Output file"));
+        optgroup = page->new_optgroup(L("G-code output"));
+        optgroup->append_single_option_line("reduce_infill_retraction");
         optgroup->append_single_option_line("gcode_add_line_number");
         Option option = optgroup->get_option("filename_format");
         option.opt.full_width = true;
@@ -2090,6 +2107,9 @@ void TabPrintModel::update_model_config()
         m_config->apply_only(local_config, local_keys);
         m_config_manipulation.apply_null_fff_config(m_config, m_null_keys, m_object_configs);
     }
+    toggle_options();
+    if (m_active_page)
+        m_active_page->update_visibility(m_mode, true); // for taggle line
     update_dirty();
     TabPrint::reload_config();
     //update();
@@ -2675,7 +2695,9 @@ void TabPrinter::build_fff()
         //create_line_with_widget(optgroup.get(), "printable_area", "custom-svg-and-png-bed-textures_124612", [this](wxWindow* parent) {
         //    return 	create_bed_shape_widget(parent);
         //});
-
+        Option option = optgroup->get_option("bed_exclude_area");
+        option.opt.full_width = true;
+        optgroup->append_single_option_line(option);
         optgroup->append_single_option_line("printable_height");
         optgroup->append_single_option_line("nozzle_volume");
         // BBS
@@ -2791,7 +2813,7 @@ void TabPrinter::build_fff()
         optgroup->m_on_change = [this, optgroup](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup, opt_key, value);
         };
-        Option option = optgroup->get_option("machine_start_gcode");
+        option = optgroup->get_option("machine_start_gcode");
         option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.height = gcode_field_height;//150;
@@ -3092,7 +3114,7 @@ void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
     // Build missed extruder pages
     //for (auto extruder_idx = m_extruders_count_old; extruder_idx < m_extruders_count; ++extruder_idx)
     auto extruder_idx = 0;
-    const wxString& page_name = wxString::Format("Extruder %d", int(extruder_idx + 1));
+    const wxString& page_name = (m_extruders_count > 1) ? wxString::Format("Extruder %d", int(extruder_idx + 1)) : wxString::Format("Extruder");
     bool page_exist = false;
     for (auto page_temp : m_pages) {
         if (page_temp->title() == page_name) {
@@ -3151,10 +3173,8 @@ void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
             optgroup->append_single_option_line("min_layer_height", "", extruder_idx);
             optgroup->append_single_option_line("max_layer_height", "", extruder_idx);
 
-#if 0
-            //optgroup = page->new_optgroup(L("Position (for multi-extruder printers)"), -1, true);
-            //optgroup->append_single_option_line("extruder_offset", "", extruder_idx);
-#endif
+            optgroup = page->new_optgroup(L("Position"), -1, true);
+            optgroup->append_single_option_line("extruder_offset", "", extruder_idx);
 
             //BBS: don't show retract related config menu in machine page
             optgroup = page->new_optgroup(L("Retraction"));
@@ -4712,7 +4732,7 @@ void Page::activate(ConfigOptionMode mode, std::function<void()> throw_if_cancel
     for (auto group : m_optgroups) {
         if (!group->activate(throw_if_canceled))
             continue;
-        m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), 10);
+        m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), 5);
         group->update_visibility(mode);
 #if HIDE_FIRST_SPLIT_LINE
         if (first) group->stb->Hide();

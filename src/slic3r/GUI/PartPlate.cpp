@@ -62,7 +62,7 @@ namespace GUI {
 
 class Bed3D;
 
-std::array<float, 4> PartPlate::SELECT_COLOR		= { 0.4196f, 0.4235f, 0.4235f, 1.0f };
+std::array<float, 4> PartPlate::SELECT_COLOR		= { 0.2666f, 0.2784f, 0.2784f, 1.0f }; //{ 0.4196f, 0.4235f, 0.4235f, 1.0f };
 std::array<float, 4> PartPlate::UNSELECT_COLOR		= { 0.82f, 0.82f, 0.82f, 1.0f };
 std::array<float, 4> PartPlate::DEFAULT_COLOR		= { 0.5f, 0.5f, 0.5f, 1.0f };
 std::array<float, 4> PartPlate::LINE_TOP_COLOR		= { 0.89f, 0.89f, 0.89f, 1.0f };
@@ -199,11 +199,11 @@ void PartPlate::calc_gridlines(const ExPolygon& poly, const BoundingBox& pp_bbox
 		line.append(Point(x, pp_bbox.min(1)));
 		line.append(Point(x, pp_bbox.max(1)));
 
-		count ++;
 		if ( (count % 5) == 0 )
 			axes_lines_bolder.push_back(line);
 		else
 			axes_lines.push_back(line);
+		count ++;
 	}
 	count = 0;
 	for (coord_t y = pp_bbox.min(1); y <= pp_bbox.max(1); y += scale_(10.0)) {
@@ -212,11 +212,11 @@ void PartPlate::calc_gridlines(const ExPolygon& poly, const BoundingBox& pp_bbox
 		line.append(Point(pp_bbox.max(0), y));
 		axes_lines.push_back(line);
 
-		count ++;
 		if ( (count % 5) == 0 )
 			axes_lines_bolder.push_back(line);
 		else
 			axes_lines.push_back(line);
+		count ++;
 	}
 
 	// clip with a slightly grown expolygon because our lines lay on the contours and may get erroneously clipped
@@ -385,7 +385,8 @@ void PartPlate::render_logo(bool bottom) const
 
 			// starts generating the main texture, compression will run asynchronously
 			GLint max_tex_size = OpenGLManager::get_gl_info().get_max_tex_size();
-			if (!m_partplate_list->m_logo_texture.load_from_svg_file(m_partplate_list->m_logo_texture_filename, true, true, true, max_tex_size/8)) {
+			GLint logo_tex_size = (max_tex_size < 2048)?max_tex_size: 2048;
+			if (!m_partplate_list->m_logo_texture.load_from_svg_file(m_partplate_list->m_logo_texture_filename, true, true, true, logo_tex_size)) {
 				BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": load logo texture from %1% failed!")%m_partplate_list->m_logo_texture_filename;
 				return;
 			}
@@ -1017,6 +1018,15 @@ void PartPlate::release_opengl_resource()
 std::vector<int> PartPlate::get_extruders() const
 {
 	std::vector<int> plate_extruders;
+	// if gcode.3mf file
+	if (m_model->objects.empty()) {
+		for (int i = 0; i < slice_filaments_info.size(); i++) {
+			plate_extruders.push_back(slice_filaments_info[i].id + 1);
+		}
+		return plate_extruders;
+	}
+
+	// if 3mf file
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
 	int glb_support_extr = glb_config.opt_int("support_filament");
@@ -1626,6 +1636,33 @@ void PartPlate::move_instances_to(PartPlate& left_plate, PartPlate& right_plate,
 	return;
 }
 
+//can add timelapse object
+bool PartPlate::can_add_timelapse_object()
+{
+	bool result = true;
+
+	if (obj_to_instance_set.size() == 0)
+		return false;
+
+	for (std::set<std::pair<int, int>>::iterator it = obj_to_instance_set.begin(); it != obj_to_instance_set.end(); ++it)
+	{
+		int obj_id = it->first;
+
+		if (obj_id >= m_model->objects.size())
+			continue;
+
+		ModelObject* object = m_model->objects[obj_id];
+
+		if (object->is_timelapse_wipe_tower)
+		{
+			result = false;
+			break;
+		}
+	}
+
+	return result;
+}
+
 void PartPlate::generate_logo_polygon(ExPolygon &logo_polygon)
 {
 	if (m_shape.size() == 4)
@@ -1802,8 +1839,8 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, Ve
 
 		ExPolygon logo_poly;
 		generate_logo_polygon(logo_poly);
-		if (!m_logo_triangles.set_from_triangles(triangulate_expolygon_2f(logo_poly, NORMALS_UP), GROUND_Z+0.28f))
-		    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create plate triangles\n";
+		if (!m_logo_triangles.set_from_triangles(triangulate_expolygon_2f(logo_poly, NORMALS_UP), GROUND_Z+0.02f))
+			BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create logo triangles\n";
 
 		ExPolygon poly;
 		/*for (const Vec2d& p : m_shape) {
@@ -1846,9 +1883,9 @@ const BoundingBox PartPlate::get_bounding_box_crd()
 	return plate_shape.bounding_box();
 }
 
-bool PartPlate::contains(const Point& point) const
+bool PartPlate::contains(const Vec3d& point) const
 {
-	return m_polygon.contains(point);
+	return m_bounding_box.contains(point);
 }
 
 bool PartPlate::contains(const GLVolume& v) const
@@ -1878,11 +1915,6 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 	print_volume.max(0) += Slic3r::BuildVolume::BedEpsilon;
 	print_volume.max(1) += Slic3r::BuildVolume::BedEpsilon;
 	return print_volume.intersects(bb);
-}
-
-Point PartPlate::point_projection(const Point& point) const
-{
-	return m_polygon.point_projection(point);
 }
 
 void PartPlate::render(bool bottom, bool only_body, bool force_background_color, HeightLimitMode mode, int hover_id)
@@ -2109,9 +2141,9 @@ int PartPlate::load_pattern_thumbnail_data(std::string filename)
 	if (result) {
 		cali_thumbnail_data.set(img.GetWidth(), img.GetHeight());
 		for (int i = 0; i < img.GetWidth() * img.GetHeight(); i++) {
-			memcpy(&thumbnail_data.pixels[4 * i], (unsigned char*)(img.GetData() + 3 * i), 3);
+			memcpy(&cali_thumbnail_data.pixels[4 * i], (unsigned char*)(img.GetData() + 3 * i), 3);
 			if (img.HasAlpha()) {
-				thumbnail_data.pixels[4 * i + 3] = *(unsigned char*)(img.GetAlpha() + i);
+				cali_thumbnail_data.pixels[4 * i + 3] = *(unsigned char*)(img.GetAlpha() + i);
 			}
 		}
 	}
@@ -2121,6 +2153,24 @@ int PartPlate::load_pattern_thumbnail_data(std::string filename)
 	return 0;
 }
 
+//load pattern box data from file
+int PartPlate::load_pattern_box_data(std::string filename)
+{
+    try {
+        nlohmann::json j;
+        boost::nowide::ifstream ifs(filename);
+        ifs >> j;
+
+        PlateBBoxData bbox_data;
+        bbox_data.from_json(j);
+        cali_bboxes_data = bbox_data;
+        return 0;
+    }
+    catch(std::exception &ex) {
+        BOOST_LOG_TRIVIAL(trace) << boost::format("catch an exception %1%")%ex.what();
+        return -1;
+    }
+}
 
 void PartPlate::print() const
 {
@@ -4009,6 +4059,11 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
             if (m_plate_list[i]->get_slice_result() && m_plate_list[i]->is_slice_result_valid()) {
                 // BBS only include current palte_idx
                 if (plate_idx == i || plate_idx == -1) {
+                    //load calibration thumbnail
+                    if (m_plate_list[i]->cali_thumbnail_data.is_valid())
+                        plate_data_item->pattern_file = "valid_pattern";
+                    if (m_plate_list[i]->cali_bboxes_data.is_valid())
+                        plate_data_item->pattern_bbox_file = "valid_pattern_bbox";
                     plate_data_item->gcode_file       = m_plate_list[i]->m_gcode_result->filename;
                     plate_data_item->is_sliced_valid  = true;
                     plate_data_item->gcode_prediction = std::to_string(
@@ -4018,7 +4073,10 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
                     m_plate_list[i]->get_print((PrintBase **) &print, nullptr, nullptr);
                     if (print) {
                         const PrintStatistics &ps = print->print_statistics();
-                        if (ps.total_weight != 0.0) { plate_data_item->gcode_weight = wxString::Format("%.2f", ps.total_weight).ToStdString(); }
+                        if (ps.total_weight != 0.0) {
+							CNumericLocalesSetter locales_setter;
+							plate_data_item->gcode_weight =wxString::Format("%.2f", ps.total_weight).ToStdString();
+						}
                     } else {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("print is null!");
                     }
@@ -4072,21 +4130,29 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list)
 		gcode_result->print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].time = atoi(plate_data_list[i]->gcode_prediction.c_str());
 		ps.total_weight = atof(plate_data_list[i]->gcode_weight.c_str());
 		ps.total_used_filament = 0.f;
-		for (auto filament_item: plate_data_list[i]->slice_flaments_info)
+		for (auto filament_item: plate_data_list[i]->slice_filaments_info)
 		{
 			ps.total_used_filament += filament_item.used_m;
 		}
 		ps.total_used_filament *= 1000; //koef
 		gcode_result->toolpath_outside = plate_data_list[i]->toolpath_outside;
+		m_plate_list[index]->slice_filaments_info = plate_data_list[i]->slice_filaments_info;
 
 		if (!plate_data_list[i]->thumbnail_file.empty()) {
 			if (boost::filesystem::exists(plate_data_list[i]->thumbnail_file)) {
 				m_plate_list[index]->load_thumbnail_data(plate_data_list[i]->thumbnail_file);
 			}
 		}
+
 		if (!plate_data_list[i]->pattern_file.empty()) {
 			if (boost::filesystem::exists(plate_data_list[i]->pattern_file)) {
-				m_plate_list[index]->load_pattern_thumbnail_data(plate_data_list[i]->pattern_file);
+				//no need to load pattern data currently
+				//m_plate_list[index]->load_pattern_thumbnail_data(plate_data_list[i]->pattern_file);
+			}
+		}
+		if (!plate_data_list[i]->pattern_bbox_file.empty()) {
+			if (boost::filesystem::exists(plate_data_list[i]->pattern_bbox_file)) {
+				m_plate_list[index]->load_pattern_box_data(plate_data_list[i]->pattern_bbox_file);
 			}
 		}
 

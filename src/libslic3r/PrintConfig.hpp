@@ -325,7 +325,7 @@ public:
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
     //BBS special case Support G/ Support W
-    std::string get_filament_type(int id = 0);
+    std::string get_filament_type(std::string &displayed_filament_type, int id = 0);
 };
 
 void handle_legacy_sla(DynamicPrintConfig &config);
@@ -596,6 +596,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
     // BBS
     ((ConfigOptionBool,                independent_support_layer_height))
+    ((ConfigOptionBool,                thick_bridges))
     // Overhang angle threshold.
     ((ConfigOptionInt,                 support_threshold_angle))
     ((ConfigOptionFloat,               support_object_xy_distance))
@@ -604,6 +605,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                flush_into_objects))
     // BBS
     ((ConfigOptionBool,                flush_into_infill))
+    ((ConfigOptionBool,                flush_into_support))
     // BBS
     ((ConfigOptionFloat,              tree_support_branch_distance))
     ((ConfigOptionFloat,              tree_support_branch_diameter))

@@ -189,7 +189,25 @@ int CLI::run(int argc, char **argv)
         params.argv = argv;
         params.load_configs = load_configs;
         params.extra_config = std::move(m_extra_config);
-        params.input_files  = std::move(m_input_files);
+
+        std::vector<std::string>    gcode_files;
+        std::vector<std::string>    non_gcode_files;
+        for (const auto& filename : m_input_files) {
+            if (is_gcode_file(filename))
+                gcode_files.emplace_back(filename);
+            else {
+                non_gcode_files.emplace_back(filename);
+            }
+        }
+        if (non_gcode_files.empty() && !gcode_files.empty()) {
+            params.input_gcode = true;
+            params.input_files  = std::move(gcode_files);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", gcode only, gcode_files size = "<<params.input_files.size();
+        }
+        else {
+            params.input_files  = std::move(m_input_files);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", normal mode, input_files size = "<<params.input_files.size();
+        }
         //BBS: remove GCodeViewer as seperate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
 
@@ -1220,7 +1238,7 @@ int CLI::run(int argc, char **argv)
 
         for (int i = 0; i < plate_data_list.size(); i++) {
             PlateData *plate_data = plate_data_list[i];
-            for (auto it = plate_data->slice_flaments_info.begin(); it != plate_data->slice_flaments_info.end(); it++) {
+            for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
                 it->type  = filament_types?filament_types->get_at(it->id):"PLA";
                 it->color = filament_color?filament_color->get_at(it->id):"#FFFFFF";
                 //it->filament_id = filament_id?filament_id->get_at(it->id):"unknown";
@@ -1729,7 +1747,7 @@ extern "C" {
             argv_ptrs[i] = argv_narrow[i].data();
 
 //BBS: register default exception handler
-#if BBL_RELEASE_TO_PUBLIC
+#if 1
         SET_DEFULTER_HANDLER();
 #else
         AddVectoredExceptionHandler(1, CBaseException::UnhandledExceptionFilter);

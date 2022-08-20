@@ -44,6 +44,41 @@ static const std::string MODELS_STR = "models";
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
 const std::string AppConfig::SECTION_MATERIALS = "sla_materials";
 
+std::string AppConfig::get_langauge_code()
+{
+    std::string get_lang = get("language");
+    if (get_lang.empty()) return "";
+
+    if (get_lang == "zh_CN")
+    {
+        get_lang = "zh-cn";
+    }
+    else
+    {
+        if (get_lang.length() >= 2) { get_lang = get_lang.substr(0, 2); }
+    }
+
+    return get_lang;
+}
+
+std::string AppConfig::get_hms_host()
+{
+    std::string sel = get("iot_environment");
+    std::string host = "";
+#if !BBL_RELEASE_TO_PUBLIC
+    if (sel == ENV_DEV_HOST)
+        host = "e-dev.bambu-lab.com";
+    else if (sel == ENV_QAT_HOST)
+        host = "e-qa.bambu-lab.com";
+    else if (sel == ENV_PRE_HOST)
+        host = "e-pre.bambu-lab.com";
+    else if (sel == ENV_PRODUCT_HOST)
+        host = "e.bambulab.com";
+    return host;
+#else
+    return "e.bambulab.com";
+#endif
+}
 
 void AppConfig::reset()
 {
@@ -256,9 +291,15 @@ void AppConfig::set_defaults()
         set("backup_interval", "10");
     }
 
+#if BBL_RELEASE_TO_PUBLIC
     if (get("iot_environment").empty()) {
         set("iot_environment", "3");
     }
+#else
+    if (get("iot_environment").empty()) {
+        set("iot_environment", "1");
+    }
+#endif
 
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
@@ -987,6 +1028,9 @@ void AppConfig::update_last_backup_dir(const std::string& dir)
 
 std::string AppConfig::get_region()
 {
+#if BBL_RELEASE_TO_PUBLIC
+    return this->get("region");
+#else
     std::string sel = get("iot_environment");
     std::string region;
     if (sel == ENV_DEV_HOST)
@@ -998,17 +1042,15 @@ std::string AppConfig::get_region()
     if (region.empty())
         return this->get("region");
     return region;
+#endif
 }
 
 std::string AppConfig::get_country_code()
 {
     std::string region = get_region();
-    /* fix PRE environment when release to public */
-#if 0
-    this->set("iot_environment", "2");
-    return "ENV_CN_PRE";
-#else
-    //if (is_engineering_region()) { return region; }
+#if !BBL_RELEASE_TO_PUBLIC
+    if (is_engineering_region()) { return region; }
+#endif
     if (region == "CHN" || region == "China")
         return "CN";
     else if (region == "USA")
@@ -1022,7 +1064,7 @@ std::string AppConfig::get_country_code()
     else
         return "Others";
     return "";
-#endif
+
 }
 
 bool AppConfig::is_engineering_region(){

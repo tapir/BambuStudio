@@ -637,9 +637,9 @@ void Preset::set_visible_from_appconfig(const AppConfig &app_config)
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": name %1%, is_visible set to %2%")%name % is_visible;
 }
 
-std::string Preset::get_filament_type()
+std::string Preset::get_filament_type(std::string &display_filament_type)
 {
-    return config.get_filament_type();
+    return config.get_filament_type(display_filament_type);
 }
 
 static std::vector<std::string> s_Preset_print_options {
@@ -666,7 +666,7 @@ static std::vector<std::string> s_Preset_print_options {
     //"independent_support_layer_height",
     "support_angle", "support_interface_top_layers", "support_interface_bottom_layers",
     "support_interface_pattern", "support_interface_spacing", "support_interface_loop_pattern",
-    "support_top_z_distance", "support_on_build_plate_only", "bridge_no_support","max_bridge_length", "print_sequence",
+    "support_top_z_distance", "support_on_build_plate_only", "bridge_no_support", "thick_bridges", "max_bridge_length", "print_sequence",
     "filename_format", "wall_filament",
     "sparse_infill_filament", "solid_infill_filament", "support_filament", "support_interface_filament",
     "ooze_prevention", "standby_temperature_delta", "interface_shells", "line_width", "initial_layer_line_width",
@@ -675,7 +675,7 @@ static std::vector<std::string> s_Preset_print_options {
     "elefant_foot_compensation", "xy_contour_compensation", "xy_hole_compensation", "resolution", "enable_prime_tower",
     "prime_tower_width", "prime_tower_brim_width", "prime_volume",
     "wipe_tower_no_sparse_layers", "compatible_printers", "compatible_printers_condition", "inherits",
-    "flush_into_infill", "flush_into_objects",
+    "flush_into_infill", "flush_into_objects", "flush_into_support",
     // BBS
      "tree_support_branch_angle", "tree_support_with_infill", "tree_support_wall_count", "tree_support_branch_distance",
      "tree_support_branch_diameter",

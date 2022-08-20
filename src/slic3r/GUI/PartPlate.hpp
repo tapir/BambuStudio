@@ -96,6 +96,7 @@ private:
 
     Print *m_print; //Print reference, not own it, no need to serialize
     GCodeProcessorResult *m_gcode_result;
+    std::vector<FilamentInfo> slice_filaments_info;
     int m_print_index;
 
     std::string m_tmp_gcode_path;       //use a temp path to store the gcode
@@ -113,7 +114,6 @@ private:
     Transform3d m_grabber_trans_matrix;
     Slic3r::Geometry::Transformation position;
     std::vector<Vec3f> positions;
-    Polygon m_polygon;
     unsigned int m_vbo_id{ 0 };
     GeometryBuffer m_triangles;
     GeometryBuffer m_exclude_triangles;
@@ -207,6 +207,7 @@ public:
     static const int plate_thumbnail_height = 512;
 
     ThumbnailData cali_thumbnail_data;
+    PlateBBoxData cali_bboxes_data;
 
     //set the plate's index
     void set_index(int index);
@@ -277,15 +278,17 @@ public:
     //move instances to left or right PartPlate
     void move_instances_to(PartPlate& left_plate, PartPlate& right_plate, BoundingBoxf3* bounding_box = nullptr);
 
+    //can add timelapse object
+    bool can_add_timelapse_object();
+
     /*rendering related functions*/
     const Pointfs& get_shape() const { return m_shape; }
     bool set_shape(const Pointfs& shape, const Pointfs& exclude_areas, Vec2d position, float height_to_lid, float height_to_rod);
-    bool contains(const Point& point) const;
+    bool contains(const Vec3d& point) const;
     bool contains(const GLVolume& v) const;
     bool contains(const BoundingBoxf3& bb) const;
     bool intersects(const BoundingBoxf3& bb) const;
 
-    Point point_projection(const Point& point) const;
     void render(bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1);
     void render_for_picking() const { on_render_for_picking(); }
     void set_selected();
@@ -361,6 +364,8 @@ public:
     int load_thumbnail_data(std::string filename);
     //load pattern thumbnail data from file
     int load_pattern_thumbnail_data(std::string filename);
+    //load pattern box data from file
+    int load_pattern_box_data(std::string filename);
 
     void print() const;
 
@@ -513,6 +518,7 @@ public:
 
     Vec3d get_current_plate_origin() { return compute_origin(m_current_plate, m_plate_cols); }
     Vec2d get_current_shape_position() { return compute_shape_position(m_current_plate, m_plate_cols); }
+    Pointfs get_exclude_area() { return m_exclude_areas; }
 
     //select plate
     int select_plate(int index);

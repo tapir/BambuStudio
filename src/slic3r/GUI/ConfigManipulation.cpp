@@ -291,17 +291,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    //BBS
-    if (config->opt_bool("timelapse_no_toolhead") && !is_timelapse_wipe_tower_already_prompted) {
-        wxString msg_text = _(L("When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-                                "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\".\n"));
-        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
-        is_msg_dlg_already_exist = true;
-        dialog.ShowModal();
-        is_msg_dlg_already_exist = false;
-        is_timelapse_wipe_tower_already_prompted = true;
-    }
-
     // BBS
     int filament_cnt = wxGetApp().preset_bundle->filament_presets.size();
 #if 0
@@ -519,7 +508,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : { "support_style", "support_base_pattern",
                     "support_base_pattern_spacing", "support_angle",
                     "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
-                    "bridge_no_support","max_bridge_length" "support_top_z_distance",
+                    "bridge_no_support", "thick_bridges", "max_bridge_length", "support_top_z_distance",
                      //BBS: add more support params to dependent of enable_support
                     "support_type","support_on_build_plate_only",
                     "support_object_xy_distance", "independent_support_layer_height"})
@@ -537,6 +526,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("tree_support_branch_angle", support_is_tree);
     toggle_line("tree_support_wall_count", support_is_tree);
     toggle_line("tree_support_with_infill", support_is_tree);
+    toggle_line("max_bridge_length", support_is_tree);
+
+    // tree support use max_bridge_length instead of bridge_no_support
+    toggle_line("bridge_no_support", !support_is_tree);
 
     for (auto el : { "support_interface_spacing", "support_interface_filament",
                      "support_interface_loop_pattern", "support_bottom_interface_spacing" })

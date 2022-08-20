@@ -8,8 +8,9 @@
 #include "libslic3r/PlaceholderParser.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "MsgDialog.hpp"
 #include "Plater.hpp"
-
+#include "GUI_App.hpp"
 #include "nlohmann/json.hpp"
 #include <thread>
 #include <mutex>
@@ -23,7 +24,6 @@
 using namespace nlohmann;
 
 namespace pt = boost::property_tree;
-
 
 const int PRINTING_STAGE_COUNT = 20;
 std::string PRINTING_STAGE_STR[PRINTING_STAGE_COUNT] = {
@@ -146,6 +146,47 @@ bool AmsTray::is_tray_info_ready()
     //if (setting_id.empty())
         //return false;
     return true;
+}
+
+bool AmsTray::is_unset_third_filament()
+{
+    if (this->is_bbl)
+        return false;
+
+    if (color.empty() || type.empty())
+        return true;
+    return false;
+}
+
+std::string AmsTray::get_display_filament_type()
+{
+    if (type == "PLA-S")
+        return "Support W";
+    else if (type == "PA-S")
+        return "Support G";
+    else
+        return type;
+    return type;
+}
+
+std::string AmsTray::get_filament_type()
+{
+    if (type == "Support W") {
+        return "PLA-S";
+    } else if (type == "Support G") {
+        return "PA-S";
+    } else if (type == "Support") {
+        if (setting_id == "GFS00") {
+            type = "PLA-S";
+        } else if (setting_id == "GFS01") {
+            type = "PA-S";
+        } else {
+            return "PLA-S";
+        }
+    } else {
+        return type;
+    }
+    return type;
 }
 
 bool HMSItem::parse_hms_info(unsigned attr, unsigned code)
@@ -336,6 +377,7 @@ MachineObject::MachineObject(NetworkAgent* agent, std::string name, std::string 
     /* printing */
     mc_print_stage = 0;
     mc_print_error_code = 0;
+    print_error = 0;
     mc_print_line_number = 0;
     mc_print_percent = 0;
     mc_print_sub_stage = 0;
@@ -348,6 +390,13 @@ MachineObject::~MachineObject()
     if (subtask_) {
         delete subtask_;
         subtask_ = nullptr;
+    }
+
+    if (get_slice_info_thread) {
+        if (get_slice_info_thread->joinable()) {
+            get_slice_info_thread->join();
+            get_slice_info_thread = nullptr;
+        }
     }
 
     if (slice_info) {
@@ -453,6 +502,16 @@ void MachineObject::_parse_ams_status(int ams_status)
     }
 
     BOOST_LOG_TRIVIAL(trace) << "ams_debug: main = " << ams_status_main_int << ", sub = " << ams_status_sub;
+}
+
+bool MachineObject::is_U0_firmware()
+{
+    auto ota_ver_it = module_vers.find("ota");
+    if (ota_ver_it != module_vers.end()) {
+        if (ota_ver_it->second.sw_ver.compare("00.01.04.00") < 0)
+            return true;
+    }
+    return false;
 }
 
 bool MachineObject::is_support_ams_mapping()
@@ -590,7 +649,6 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
 
     // tray_index : tray_color
     std::map<int, FilamentInfo> tray_filaments;
-
     for (auto ams = amsList.begin(); ams != amsList.end(); ams++) {
         for (auto tray = ams->second->trayList.begin(); tray != ams->second->trayList.end(); tray++) {
             int ams_id = atoi(ams->first.c_str());
@@ -605,7 +663,7 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
             if (tray->second->is_tray_info_ready()) {
                 FilamentInfo info;
                 info.color = tray->second->color;
-                info.type = tray->second->type;
+                info.type = tray->second->get_filament_type();
                 info.id = tray_index;
                 tray_filaments.emplace(std::make_pair(tray_index, info));
             }
@@ -622,7 +680,7 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
                 info.id = atoi(tray_it->first.c_str()) + atoi(it->first.c_str()) * 4;
                 info.tray_id = atoi(tray_it->first.c_str()) + atoi(it->first.c_str()) * 4;
                 info.color = tray_it->second->color;
-                info.type = tray_it->second->type;
+                info.type = tray_it->second->get_filament_type();
             }
             else {
                 info.id = -1;
@@ -634,45 +692,70 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
 
     // is_support_ams_mapping
     if (!is_support_ams_mapping()) {
+        BOOST_LOG_TRIVIAL(info) << "ams_mapping: do not support, use order mapping";
         for (int i = 0; i < filaments.size(); i++) {
             FilamentInfo info;
-            if (i < tray_info_list.size()) {
-                info.id = filaments[i].id;
-                info.tray_id = filaments[i].id;
-                info.color = tray_info_list[i].color;
-                info.type = tray_info_list[i].type;
-            } else {
-                info.id = filaments[i].id;
+            info.id = filaments[i].id;
+            int ams_id = filaments[i].id / 4;
+            auto ams_it = amsList.find(std::to_string(ams_id));
+            if (ams_it == amsList.end()) {
                 info.tray_id = -1;
+                info.mapping_result = (int)MappingResult::MAPPING_RESULT_EXCEED;
+            } else {
+                info.tray_id = filaments[i].id;
+                int tray_id = filaments[i].id % 4;
+                auto tray_it = ams_it->second->trayList.find(std::to_string(tray_id));
+                if (tray_it != ams_it->second->trayList.end()) {
+                    if (!tray_it->second->is_exists || tray_it->second->is_unset_third_filament()) {
+                        ;
+                    } else {
+                        if (filaments[i].type == tray_it->second->get_filament_type()) {
+                            info.color = tray_it->second->color;
+                            info.type = tray_it->second->get_filament_type();
+                        } else {
+                            info.tray_id = -1;
+                            info.mapping_result = (int)MappingResult::MAPPING_RESULT_TYPE_MISMATCH;
+                        }
+                    }
+                }
             }
             result.push_back(info);
         }
-        return 0;
+        return 1;
     }
 
-    // calc distance map
-    struct DisValue {
-        int  tray_id;
-        float distance;
-        bool  is_same_color = true;
-        bool  is_type_match = true;
-    };
+    char buffer[256];
     std::vector<std::vector<DisValue>> distance_map;
+
+    // print title
+    ::sprintf(buffer, "F(id)");
+    std::string line = std::string(buffer);
+    for (auto tray = tray_filaments.begin(); tray != tray_filaments.end(); tray++) {
+        ::sprintf(buffer, "   AMS%02d", tray->second.id+1);
+        line += std::string(buffer);
+    }
+    BOOST_LOG_TRIVIAL(info) << "ams_mapping_distance:" << line;
+
     for (int i = 0; i < filaments.size(); i++) {
         std::vector<DisValue> rol;
+        ::sprintf(buffer, "F(%02d)", filaments[i].id+1);
+        line = std::string(buffer);
         for (auto tray = tray_filaments.begin(); tray != tray_filaments.end(); tray++) {
             DisValue val;
-            val.tray_id = tray->first;
+            val.tray_id = tray->second.id;
             wxColour c = wxColour(filaments[i].color);
             val.distance = calc_color_distance(c, AmsTray::decode_color(tray->second.color));
-            //val.is_same_color = val.distance < MAPPING_COLOR_THRESHOLD;
             if (filaments[i].type != tray->second.type) {
+                val.distance = 999999;
                 val.is_type_match = false;
             } else {
                 val.is_type_match = true;
             }
+            ::sprintf(buffer, "  %6.0f", val.distance);
+            line += std::string(buffer);
             rol.push_back(val);
         }
+        BOOST_LOG_TRIVIAL(info) << "ams_mapping_distance:" << line;
         distance_map.push_back(rol);
     }
 
@@ -683,6 +766,7 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
         info.tray_id = -1;
         result.push_back(info);
     }
+
     std::set<int> picked_src;
     std::set<int> picked_tar;
     for (int k = 0; k < distance_map.size(); k++) {
@@ -693,8 +777,9 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
             if (picked_src.find(i) != picked_src.end())
                 continue;
             for (int j = 0; j < distance_map[i].size(); j++) {
-                if (picked_tar.find(j) == picked_tar.end()
-                    && distance_map[i][j].is_same_color
+                if (picked_tar.find(j) != picked_tar.end())
+                    continue;
+                if (distance_map[i][j].is_same_color
                     && distance_map[i][j].is_type_match) {
                     if (min_val > distance_map[i][j].distance) {
                         min_val = distance_map[i][j].distance;
@@ -707,25 +792,31 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
         if (picked_src_idx >= 0 && picked_tar_idx >= 0) {
             auto tray = tray_filaments.find(distance_map[k][picked_tar_idx].tray_id);
             if (tray != tray_filaments.end()) {
-                result[picked_src_idx].tray_id = tray->first;
-                result[picked_src_idx].color = tray->second.color;
-                result[picked_src_idx].type = tray->second.type;
-                BOOST_LOG_TRIVIAL(trace) << "tray_id = " << tray->first << ", distance = " << distance_map[k][picked_tar_idx].distance;
+                result[picked_src_idx].tray_id  = tray->first;
+                result[picked_src_idx].color    = tray->second.color;
+                result[picked_src_idx].type     = tray->second.type;
+                result[picked_src_idx].distance = tray->second.distance;
             }
             else {
                 FilamentInfo info;
                 info.tray_id = -1;
             }
-            picked_tar.insert(picked_tar_idx);
+            ::sprintf(buffer, "ams_mapping, picked F(%02d) AMS(%02d), distance=%6.0f", picked_src_idx+1, picked_tar_idx+1,
+                distance_map[picked_src_idx][picked_tar_idx].distance);
+            BOOST_LOG_TRIVIAL(info) << std::string(buffer);
             picked_src.insert(picked_src_idx);
+            picked_tar.insert(picked_tar_idx);
         }
     }
+
+    std::vector<FilamentInfo> cache_map_result = result;
 
     //check ams mapping result
     if (is_valid_mapping_result(result)) {
         return 0;
     }
 
+    reset_mapping_result(result);
     try {
         // try to use ordering ams mapping
         bool order_mapping_result = true;
@@ -749,13 +840,21 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
         }
 
         //check order mapping result
-        if (!is_valid_mapping_result(result)) {
-            reset_mapping_result(result);
-            return -1;
+        if (is_valid_mapping_result(result)) {
+            return 0;
         }
     } catch(...) {
         reset_mapping_result(result);
         return -1;
+    }
+
+    // try to match some color
+    reset_mapping_result(result);
+    result = cache_map_result;
+    for (auto it = result.begin(); it != result.end(); it++) {
+        if (it->distance >= 6000) {
+            it->tray_id = -1;
+        }
     }
 
     return 0;
@@ -763,21 +862,62 @@ int MachineObject::ams_filament_mapping(std::vector<FilamentInfo> filaments, std
 
 bool MachineObject::is_valid_mapping_result(std::vector<FilamentInfo>& result)
 {
-    bool valid_ams_mapping_result = true;
+    if (is_support_ams_mapping()) {
+        bool valid_ams_mapping_result = true;
+        for (int i = 0; i < result.size(); i++) {
+            if (result[i].tray_id == -1) {
+                valid_ams_mapping_result = false;
+                break;
+            }
+        }
+        return valid_ams_mapping_result;
+    } else {
+        bool is_valid = true;
+        // invalid mapping result
+        if (result.empty()) return false;
+        for (int i = 0; i < result.size(); i++) {
+            // invalid mapping result
+            if (result[i].tray_id < 0)
+                is_valid = false;
+            else {
+                int ams_id = result[i].tray_id / 4;
+                if (amsList.find(std::to_string(ams_id)) == amsList.end()) {
+                    result[i].tray_id = -1;
+                    is_valid = false;
+                }
+            }
+        }
+        return is_valid;
+    }
+    return true;
+}
+
+bool MachineObject::is_mapping_exceed_filament(std::vector<FilamentInfo> & result, int &exceed_index)
+{
+    bool is_exceed = false;
     for (int i = 0; i < result.size(); i++) {
-        if (result[i].tray_id == -1) {
-            valid_ams_mapping_result = false;
+        int ams_id = result[i].tray_id / 4;
+        if (amsList.find(std::to_string(ams_id)) == amsList.end()) {
+            exceed_index = result[i].tray_id;
+            result[i].tray_id = -1;
+            is_exceed = true;
+            break;
+        }
+        if (result[i].mapping_result == MappingResult::MAPPING_RESULT_EXCEED) {
+            exceed_index = result[i].id;
+            is_exceed = true;
             break;
         }
     }
-    return valid_ams_mapping_result;
+    return is_exceed;
 }
-
 
 void MachineObject::reset_mapping_result(std::vector<FilamentInfo>& result)
 {
     for (int i = 0; i < result.size(); i++) {
         result[i].tray_id = -1;
+        result[i].distance = 99999;
+        result[i].mapping_result = 0;
     }
 }
 
@@ -904,7 +1044,7 @@ std::map<int, MachineObject::ModuleVersionInfo> MachineObject::get_ams_version()
 
 bool MachineObject::is_system_printing()
 {
-    if (is_in_calibration())
+    if (is_in_calibration() && is_in_printing_status(print_status))
         return true;
     //FIXME
     //if (print_type == "system" && is_in_printing_status(print_status))
@@ -936,8 +1076,38 @@ bool MachineObject::is_in_calibration()
     if (boost::contains(m_gcode_file, "auto_cali_for_user.gcode")
         && stage_curr != 0) {
         return true;
+    } else {
+        // reset
+        if (stage_curr != 0) {
+            calibration_done = false;
+        }
     }
     return false;
+}
+
+bool MachineObject::is_calibration_done()
+{
+    return calibration_done;
+}
+
+bool MachineObject::is_calibration_running()
+{
+    if (is_in_calibration() && is_in_printing_status(print_status))
+        return true;
+    return false;
+}
+
+void MachineObject::parse_state_changed_event()
+{
+    // parse calibration done
+    if (last_mc_print_stage != mc_print_stage) {
+        if (mc_print_stage == 1 && boost::contains(m_gcode_file, "auto_cali_for_user.gcode")) {
+            calibration_done = true;
+        } else {
+            calibration_done = false;
+        }
+    }
+    last_mc_print_stage = mc_print_stage;
 }
 
 PrintingSpeedLevel MachineObject::_parse_printing_speed_lvl(int lvl)
@@ -950,7 +1120,10 @@ PrintingSpeedLevel MachineObject::_parse_printing_speed_lvl(int lvl)
 
 bool MachineObject::is_sdcard_printing()
 {
-    if (can_abort() && obj_subtask_id.compare("0") == 0 && profile_id_ == "0" && project_id_ == "0")
+    if (can_abort()
+        && (obj_subtask_id.compare("0") == 0 || obj_subtask_id.empty())
+        && (profile_id_ == "0" || profile_id_.empty())
+        && (project_id_ == "0" || project_id_.empty()))
         return true;
     else
         return false;
@@ -959,6 +1132,16 @@ bool MachineObject::is_sdcard_printing()
 bool MachineObject::has_sdcard()
 {
     return camera_has_sdcard;
+}
+
+bool MachineObject::has_timelapse()
+{
+    return camera_timelapse;
+}
+
+bool MachineObject::has_recording()
+{
+    return camera_recording;
 }
 
 int MachineObject::command_get_version()
@@ -974,10 +1157,10 @@ int MachineObject::command_request_push_all()
     auto curr_time = std::chrono::system_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_request_push);
     if (diff.count() < REQUEST_PUSH_MIN_TIME) {
-        BOOST_LOG_TRIVIAL(trace) << "command_request_push_all: send request too fast";
+        BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all: send request too fast, dev_id=" << dev_id;
         return -1;
     } else {
-        BOOST_LOG_TRIVIAL(trace) << "command_request_push_all";
+        BOOST_LOG_TRIVIAL(trace) << "static: command_request_push_all, dev_id=" << dev_id;
         last_request_push = std::chrono::system_clock::now();
     }
     json j;
@@ -1296,6 +1479,31 @@ int MachineObject::command_ipcam_timelapse(bool on_off)
     return this->publish_json(j.dump());
 }
 
+int MachineObject::command_xcam_control(std::string module_name, bool on_off, bool print_halt)
+{
+    json j;
+    j["xcam"]["command"] = "xcam_control_set";
+    j["xcam"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["xcam"]["module_name"] = module_name;
+    j["xcam"]["control"] = on_off;
+    j["xcam"]["print_halt"] = print_halt;
+    return this->publish_json(j.dump());
+}
+
+int MachineObject::command_xcam_control_first_layer_inspector(bool on_off, bool print_halt)
+{
+    xcam_first_layer_inspector = on_off;
+    xcam_first_layer_hold_count = HOLD_COUNT_MAX;
+    return command_xcam_control("first_layer_inspector", on_off, print_halt);
+}
+
+int MachineObject::command_xcam_control_spaghetti_detector(bool on_off, bool print_halt)
+{
+    xcam_spaghetti_detector = on_off;
+    xcam_spaghetti_print_halt = print_halt;
+    xcam_spaghetti_hold_count = HOLD_COUNT_MAX;
+    return command_xcam_control("spaghetti_detector", on_off, print_halt);
+}
 
 void MachineObject::set_bind_status(std::string status)
 {
@@ -1365,6 +1573,11 @@ bool MachineObject::is_in_printing()
     return false;
 }
 
+bool MachineObject::is_in_prepare()
+{
+    return print_status == "PREPARE";
+}
+
 bool MachineObject::is_printing_finished()
 {
     if (print_status.compare("FINISH") == 0
@@ -1388,8 +1601,10 @@ void MachineObject::reset()
     camera_recording = false;
     camera_timelapse = false;
     printing_speed_mag = 100;
+    gcode_file_prepare_percent = 0;
     iot_print_status = "";
     print_status = "";
+    last_mc_print_stage = -1;
 
     subtask_ = nullptr;
 
@@ -1442,6 +1657,11 @@ bool MachineObject::is_connected()
         }
     }
     return true;
+}
+
+bool MachineObject::is_connecting()
+{
+    return is_connected() && m_push_count == 0;
 }
 
 void MachineObject::set_online_state(bool on_off)
@@ -1508,9 +1728,10 @@ int MachineObject::parse_json(std::string payload)
         if (j_pre.contains("print")) {
             if (j_pre["print"].contains("command")) {
                 if (j_pre["print"]["command"].get<std::string>() == "push_status") {
-                    m_push_count++;
                     if (j_pre["print"].contains("msg")) {
                         if (j_pre["print"]["msg"].get<int>() == 0) {           //all message
+                            BOOST_LOG_TRIVIAL(trace) << "static: get push_all msg, dev_id=" << dev_id;
+                            m_push_count++;
                             print_json.diff2all_base_reset(j_pre);
                         } else if (j_pre["print"]["msg"].get<int>() == 1) {    //diff message
                             if (print_json.diff2all(j_pre, j) == 0) {
@@ -1544,11 +1765,14 @@ int MachineObject::parse_json(std::string payload)
             json jj = j["print"];
             if (jj.contains("command")) {
                 if (jj["command"].get<std::string>() == "push_status") {
+                    m_push_count++;
                     last_push_time = std::chrono::system_clock::now();
 #pragma region printing
+                    // U0 firmware
                     if (jj.contains("print_type")) {
                         print_type = jj["print_type"].get<std::string>();
                     }
+
                     if (jj.contains("mc_remaining_time")) {
                         if (jj["mc_remaining_time"].is_string())
                             mc_left_time = stoi(j["print"]["mc_remaining_time"].get<std::string>()) * 60;
@@ -1573,8 +1797,6 @@ int MachineObject::parse_json(std::string payload)
                             mc_print_stage = jj["mc_print_stage"].get<int>();
                     }
                     if (jj.contains("mc_print_error_code")) {
-                        if (jj["mc_print_error_code"].is_string())
-                            mc_print_error_code = atoi(jj["mc_print_error_code"].get<std::string>().c_str());
                         if (jj["mc_print_error_code"].is_number())
                             mc_print_error_code = jj["mc_print_error_code"].get<int>();
 
@@ -1583,6 +1805,11 @@ int MachineObject::parse_json(std::string payload)
                         if (jj["mc_print_line_number"].is_string() && !jj["mc_print_line_number"].is_null())
                             mc_print_line_number = atoi(jj["mc_print_line_number"].get<std::string>().c_str());
                     }
+                    if (jj.contains("print_error")) {
+                        if (jj["print_error"].is_number())
+                            print_error = jj["print_error"].get<int>();
+                    }
+
 #pragma endregion
 
 #pragma region print_task
@@ -1603,8 +1830,15 @@ int MachineObject::parse_json(std::string payload)
 
                     if (jj.contains("gcode_file"))
                         this->m_gcode_file = jj["gcode_file"].get<std::string>();
-
-                    if (jj.contains("project_id") 
+                    if (jj.contains("gcode_file_prepare_percent")) {
+                        std::string percent_str = jj["gcode_file_prepare_percent"].get<std::string>();
+                        if (!percent_str.empty()) {
+                            try{
+                                this->gcode_file_prepare_percent = atoi(percent_str.c_str());
+                            } catch(...) {}
+                        }
+                    }
+                    if (jj.contains("project_id")
                         && jj.contains("profile_id")
                         && jj.contains("subtask_id")
                         ){
@@ -1633,11 +1867,13 @@ int MachineObject::parse_json(std::string payload)
                             curr_task->task_progress = mc_print_percent;
                             curr_task->printing_status = print_status;
                             curr_task->task_id = jj["subtask_id"].get<std::string>();
-                            
+
                         }
                     }
+
+
 #pragma endregion
-                    
+
 #pragma region status
                     /* temperature */
                     if (jj.contains("bed_temper")) {
@@ -1755,14 +1991,14 @@ int MachineObject::parse_json(std::string payload)
                             camera_has_sdcard = jj["sdcard"].get<bool>();
                         } else {
                             //do not check sdcard if no sdcard field
-                            camera_has_sdcard = true;
+                            camera_has_sdcard = false;
                         }
                     }
                     catch (...) {
                         ;
                     }
 #pragma endregion
-                    
+
 #pragma region upgrade
                     try {
                         if (jj.contains("upgrade_state")) {
@@ -1788,9 +2024,15 @@ int MachineObject::parse_json(std::string payload)
                                 upgrade_force_upgrade = jj["upgrade_state"]["force_upgrade"].get<bool>();
                             if (jj["upgrade_state"].contains("err_code"))
                                 upgrade_err_code = jj["upgrade_state"]["err_code"].get<int>();
-                            if (jj["upgrade_state"].contains("dis_state"))
+                            if (jj["upgrade_state"].contains("dis_state")) {
+                                if (upgrade_display_state != jj["upgrade_state"]["dis_state"].get<int>()
+                                    && jj["upgrade_state"]["dis_state"].get<int>() == 3) {
+                                    GUI::wxGetApp().CallAfter([this] {
+                                        this->command_get_version();
+                                    });
+                                }
                                 upgrade_display_state = jj["upgrade_state"]["dis_state"].get<int>();
-                            else {
+                            } else {
                                 //BBS compatibility with old version
                                 if (upgrade_status == "DOWNLOADING"
                                     || upgrade_status == "FLASHING"
@@ -1847,7 +2089,33 @@ int MachineObject::parse_json(std::string payload)
                     catch (...) {
                         ;
                     }
-#pragma endregion            
+
+                    try {
+                        if (jj.contains("xcam")) {
+                            if (xcam_first_layer_hold_count > 0)
+                                xcam_first_layer_hold_count--;
+                            else {
+                                if (jj["xcam"].contains("first_layer_inspector")) {
+                                    xcam_first_layer_inspector = jj["xcam"]["first_layer_inspector"].get<bool>();
+                                }
+                            }
+
+                            if (xcam_spaghetti_hold_count > 0) {
+                                xcam_spaghetti_hold_count--;
+                            } else {
+                                if (jj["xcam"].contains("spaghetti_detector")) {
+                                    xcam_spaghetti_detector = jj["xcam"]["spaghetti_detector"].get<bool>();
+                                }
+                                if (jj["xcam"].contains("print_halt")) {
+                                        xcam_spaghetti_print_halt = jj["xcam"]["print_halt"].get<bool>();
+                                }
+                            }
+                        }
+                    }
+                    catch (...) {
+                        ;
+                    }
+#pragma endregion
 
 #pragma region hms
                     // parse hms msg
@@ -1977,45 +2245,81 @@ int MachineObject::parse_json(std::string payload)
                                             curr_tray = tray_iter->second;
                                         }
                                         if (!curr_tray) continue;
+
+                                        if (curr_tray->hold_count > 0) {
+                                            curr_tray->hold_count--;
+                                            continue;
+                                        }
+
                                         curr_tray->id = (*tray_it)["id"].get<std::string>();
                                         if (tray_it->contains("tag_uid"))
                                             curr_tray->tag_uid          = (*tray_it)["tag_uid"].get<std::string>();
+                                        else
+                                            curr_tray->tag_uid = "0";
                                         if (tray_it->contains("tray_info_idx") && tray_it->contains("tray_type")) {
                                             curr_tray->setting_id       = (*tray_it)["tray_info_idx"].get<std::string>();
                                             std::string type            = (*tray_it)["tray_type"].get<std::string>();
                                             if (curr_tray->setting_id == "GFS00") {
-                                                curr_tray->type = "Support W";
-                                            } else if (curr_tray->setting_id == "GFS01") {
-                                                curr_tray->type = "Support G";
+                                                curr_tray->type = "PLA-S";
+                                            }
+                                            else if (curr_tray->setting_id == "GFS01") {
+                                                curr_tray->type = "PA-S";
                                             } else {
                                                 curr_tray->type = type;
                                             }
+                                        } else {
+                                            curr_tray->setting_id = "";
+                                            curr_tray->type       = "";
                                         }
                                         if (tray_it->contains("tray_sub_brands"))
                                             curr_tray->sub_brands       = (*tray_it)["tray_sub_brands"].get<std::string>();
+                                        else
+                                            curr_tray->sub_brands = "";
                                         if (tray_it->contains("tray_weight"))
                                             curr_tray->weight           = (*tray_it)["tray_weight"].get<std::string>();
+                                        else
+                                            curr_tray->weight = "";
                                         if (tray_it->contains("tray_diameter"))
                                             curr_tray->diameter         = (*tray_it)["tray_diameter"].get<std::string>();
+                                        else
+                                            curr_tray->diameter = "";
                                         if (tray_it->contains("tray_temp"))
                                             curr_tray->temp             = (*tray_it)["tray_temp"].get<std::string>();
+                                        else
+                                            curr_tray->temp = "";
                                         if (tray_it->contains("tray_time"))
                                             curr_tray->time             = (*tray_it)["tray_time"].get<std::string>();
+                                        else
+                                            curr_tray->time = "";
                                         if (tray_it->contains("bed_temp_type"))
                                             curr_tray->bed_temp_type    = (*tray_it)["bed_temp_type"].get<std::string>();
+                                        else
+                                            curr_tray->bed_temp_type = "";
                                         if (tray_it->contains("bed_temp"))
                                             curr_tray->bed_temp         = (*tray_it)["bed_temp"].get<std::string>();
+                                        else
+                                            curr_tray->bed_temp = "";
                                         if (tray_it->contains("nozzle_temp_max"))
                                             curr_tray->nozzle_temp_max = (*tray_it)["nozzle_temp_max"].get<std::string>();
+                                        else
+                                            curr_tray->nozzle_temp_max = "";
                                         if (tray_it->contains("nozzle_temp_min"))
                                             curr_tray->nozzle_temp_min = (*tray_it)["nozzle_temp_min"].get<std::string>();
+                                        else
+                                            curr_tray->nozzle_temp_min = "";
                                         if (tray_it->contains("xcam_info"))
                                             curr_tray->xcam_info = (*tray_it)["xcam_info"].get<std::string>();
+                                        else
+                                            curr_tray->xcam_info = "";
                                         if (tray_it->contains("tray_uuid"))
                                             curr_tray->uuid = (*tray_it)["tray_uuid"].get<std::string>();
+                                        else
+                                            curr_tray->uuid = "0";
                                         if (tray_it->contains("tray_color")) {
                                             auto color = (*tray_it)["tray_color"].get<std::string>();
                                             curr_tray->update_color_from_str(color);
+                                        } else {
+                                            curr_tray->color = "";
                                         }
                                         try {
                                             if (!ams_id.empty() && !curr_tray->id.empty()) {
@@ -2051,12 +2355,20 @@ int MachineObject::parse_json(std::string payload)
                     }
 #pragma endregion
 
-
-
                 } else if (jj["command"].get<std::string>() == "gcode_line") {
                     //ack of gcode_line
+                    BOOST_LOG_TRIVIAL(debug) << "parse_json, ack of gcode_line = " << j.dump(4);
                 } else if (jj["command"].get<std::string>() == "project_file") {
                     //ack of project file
+                    BOOST_LOG_TRIVIAL(debug) << "parse_json, ack of project_file = " << j.dump(4);
+                    std::string result;
+                    if (jj.contains("result")) {
+                        result = jj["result"].get<std::string>();
+                        if (result == "FAIL") {
+                            wxString text = _L("Failed to start printing job");
+                            GUI::wxGetApp().show_dialog(text);
+                        }
+                    }
                 } else if (jj["command"].get<std::string>() == "ams_filament_setting") {
                     if (jj["ams_id"].is_number()) {
                         int ams_id = jj["ams_id"].get<int>();
@@ -2071,11 +2383,25 @@ int MachineObject::parse_json(std::string payload)
                                 tray_it->second->type = jj["tray_type"].get<std::string>();
                                 tray_it->second->color = jj["tray_color"].get<std::string>();
                                 tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
+                                // delay update
+                                tray_it->second->set_hold_count();
                             } else {
                                 BOOST_LOG_TRIVIAL(warning) << "ams_filament_setting, can not find in trayList, tray_id=" << tray_id;
                             }
                         } else {
                             BOOST_LOG_TRIVIAL(warning) << "ams_filament_setting, can not find in amsList, ams_id=" << ams_id;
+                        }
+                    }
+                } else if (jj["command"].get<std::string>() == "xcam_control_set") {
+                    if (jj.contains("module_name") && jj.contains("control")) {
+                        if (jj["module_name"].get<std::string>() == "first_layer_inspector") {
+                            xcam_first_layer_inspector = jj["control"].get<bool>();
+                            xcam_first_layer_hold_count = HOLD_COUNT_MAX;
+                        } else if (jj["module_name"].get<std::string>() == "spaghetti_detector") {
+                            xcam_spaghetti_detector = jj["control"].get<bool>();
+                            xcam_spaghetti_hold_count = HOLD_COUNT_MAX;
+                            if (jj.contains("print_halt"))
+                                xcam_spaghetti_print_halt = jj["print_halt"].get<bool>();
                         }
                     }
                 }
@@ -2133,6 +2459,8 @@ int MachineObject::parse_json(std::string payload)
             }
         }
         catch (...)  {}
+
+        parse_state_changed_event();
     }
     catch (...) {
         BOOST_LOG_TRIVIAL(trace) << "parse_json failed! dev_id=" << this->dev_id <<", payload = " << payload;
@@ -2185,7 +2513,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
 
         BOOST_LOG_TRIVIAL(trace) << "slice_info: start";
         slice_info = new BBLSliceInfo();
-        auto get_slice_info_thread = boost::thread([this, project_id, profile_id, subtask_id, plate_idx] {
+        get_slice_info_thread = new boost::thread([this, project_id, profile_id, subtask_id, plate_idx] {
                 int plate_index = -1;
 
                 if (!m_agent) return;
@@ -2193,6 +2521,8 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                 if (plate_idx >= 0) {
                     plate_index = plate_idx;
                 } else {
+                    if (subtask_id.compare("0") == 0)
+                        return;
                     m_agent->get_task_plate_index(subtask_id, &plate_index);
                 }
 
@@ -2339,6 +2669,10 @@ DeviceManager::~DeviceManager()
     userMachineList.clear();
 }
 
+void DeviceManager::set_agent(NetworkAgent* agent)
+{
+    m_agent = agent;
+}
 
 void DeviceManager::on_machine_alive(std::string json_str)
 {
@@ -2376,7 +2710,12 @@ void DeviceManager::on_machine_alive(std::string json_str)
             obj->wifi_signal = printer_signal;
             obj->dev_connection_type = connect_type;
             obj->bind_state = bind_state;
-            BOOST_LOG_TRIVIAL(info) << "SsdpDiscovery:: Update Machine Info, printer_sn = " << dev_id << ", signal = " << printer_signal;
+
+            // U0 firmware
+            if (obj->dev_connection_type.empty() && obj->bind_state.empty())
+                obj->bind_state = "free";
+
+            BOOST_LOG_TRIVIAL(debug) << "SsdpDiscovery:: Update Machine Info, printer_sn = " << dev_id << ", signal = " << printer_signal;
             obj->last_alive = Slic3r::Utils::get_current_time_utc();
             obj->m_is_online = true;
         }
@@ -2396,7 +2735,7 @@ void DeviceManager::on_machine_alive(std::string json_str)
             localMachineList.insert(std::make_pair(dev_id, obj));
 
 
-            BOOST_LOG_TRIVIAL(info) << "SsdpDiscovery::New Machine, ip = " << dev_ip << ", printer_name= " << dev_name << ", printer_type = " << printer_type_str << ", signal = " << printer_signal;
+            BOOST_LOG_TRIVIAL(debug) << "SsdpDiscovery::New Machine, ip = " << dev_ip << ", printer_name= " << dev_name << ", printer_type = " << printer_type_str << ", signal = " << printer_signal;
         }
     }
     catch (...) {
@@ -2480,6 +2819,11 @@ MachineObject* DeviceManager::get_local_machine(std::string dev_id)
     return it->second;
 }
 
+void DeviceManager::erase_user_machine(std::string dev_id)
+{
+    userMachineList.erase(dev_id);
+}
+
 MachineObject* DeviceManager::get_user_machine(std::string dev_id)
 {
     if (!Slic3r::GUI::wxGetApp().is_user_login())
@@ -2505,6 +2849,7 @@ void DeviceManager::clean_user_info()
     BOOST_LOG_TRIVIAL(trace) << "DeviceManager::clean_user_info";
     // reset selected_machine
     selected_machine = "";
+    local_selected_machine = "";
 
     // clean access code
     for (auto it = userMachineList.begin(); it != userMachineList.end(); it++) {
@@ -2522,7 +2867,7 @@ void DeviceManager::clean_user_info()
 
 bool DeviceManager::set_selected_machine(std::string dev_id)
 {
-    BOOST_LOG_TRIVIAL(trace) << "set_selected_machine=" << dev_id;
+    BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id;
     auto my_machine_list = get_my_machine_list();
     auto it = my_machine_list.find(dev_id);
     if (it != my_machine_list.end()) {
@@ -2534,7 +2879,7 @@ bool DeviceManager::set_selected_machine(std::string dev_id)
             if (m_agent) {
                 if (it->second->connection_type() != "lan" || it->second->connection_type().empty()) {
                     if (m_agent->get_user_selected_machine() != dev_id) {
-                        BOOST_LOG_TRIVIAL(trace) << "set_selected_machine: same dev_id = " << dev_id;
+                        BOOST_LOG_TRIVIAL(info) << "static: set_selected_machine: same dev_id = " << dev_id;
                         m_agent->set_user_selected_machine(dev_id);
                         it->second->reset();
                     } else {
@@ -2680,7 +3025,7 @@ void DeviceManager::update_user_machine_list_info()
 {
     if (!m_agent) return;
 
-    BOOST_LOG_TRIVIAL(trace) << "update_user_machine_list_info";
+    BOOST_LOG_TRIVIAL(debug) << "update_user_machine_list_info";
     unsigned int http_code;
     std::string body;
     int result = m_agent->get_user_print_info(&http_code, &body);

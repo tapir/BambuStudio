@@ -19,7 +19,6 @@
 #include "Search.hpp"
 #include "PartPlate.hpp"
 #include "GUI_App.hpp"
-#include "GUI_AuxiliaryList.hpp"
 #include "Jobs/PrintJob.hpp"
 #include "libslic3r/Model.hpp"
 
@@ -82,6 +81,9 @@ wxDECLARE_EVENT(EVT_SLICING_UPDATE, Slic3r::SlicingStatusEvent);
 wxDECLARE_EVENT(EVT_PUBLISH,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_REPAIR_MODEL,        wxCommandEvent);
 wxDECLARE_EVENT(EVT_FILAMENT_COLOR_CHANGED,        wxCommandEvent);
+wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_NETWORKING,        wxCommandEvent);
+wxDECLARE_EVENT(EVT_INSTALL_PLUGIN_HINT,        wxCommandEvent);
+wxDECLARE_EVENT(EVT_PREVIEW_ONLY_MODE_HINT,        wxCommandEvent);
 
 
 const wxString DEFAULT_PROJECT_NAME = "Untitled";
@@ -119,11 +121,9 @@ public:
 
     ObjectList*             obj_list();
     ObjectSettings*         obj_settings();
-    wxScrolledWindow*       scrolled_panel();
+    wxPanel*                scrolled_panel();
     wxPanel* print_panel();
     wxPanel* filament_panel();
-
-    AuxiliaryList*          aux_list();
 
     ConfigOptionsGroup*     og_freq_chng_params(const bool is_fff);
     wxButton*               get_wiping_dialog_button();
@@ -144,7 +144,6 @@ public:
     void                    update_searcher();
     void                    update_ui_from_settings();
 	bool                    show_object_list(bool show) const;
-    bool                    show_auxiliary_dialog() const;
 
 #ifdef _MSW_DARK_MODE
     void                    show_mode_sizer(bool show);
@@ -418,6 +417,7 @@ public:
 
     //BBS:
     void fill_color(int extruder_id);
+    bool can_add_timelapse_wt() const;
 
     bool can_delete() const;
     bool can_delete_all() const;

@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-07-15 10:25+0800\n"
-"PO-Revision-Date: 2022-07-13 21:50+0800\n"
+"POT-Creation-Date: 2022-08-08 20:01+0800\n"
+"PO-Revision-Date: 2022-08-07 21:57+0800\n"
 "Last-Translator: Jiang Yue <maze1024@gmail.com>\n"
 "Language-Team: \n"
 "Language: zh_CN\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Poedit 3.1\n"
+"X-Generator: Poedit 3.0.1\n"
 
 msgid "Supports Painting"
 msgstr "支撑绘制"
@@ -50,14 +50,14 @@ msgstr "擦除所有绘制"
 msgid "Highlight overhang areas"
 msgstr "高亮悬空区域"
 
-msgid "Fragment filter"
-msgstr "碎片过滤器"
+msgid "Gap fill"
+msgstr "缝隙填充"
 
 msgid "Perform"
 msgstr "执行"
 
-msgid "Fragment area"
-msgstr "碎片面积阈值"
+msgid "Gap area"
+msgstr ""
 
 msgid "Set pen size"
 msgstr "设置画笔大小"
@@ -83,8 +83,8 @@ msgstr "球"
 msgid "Fill"
 msgstr "填充"
 
-msgid "Fragment Filter"
-msgstr "碎片过滤器"
+msgid "Gap Fill"
+msgstr "缝隙填充"
 
 msgid "Highlight faces according to overhang angle."
 msgstr "根据当前设置的悬空角度来高亮片面。"
@@ -125,9 +125,6 @@ msgstr "选择耗材丝"
 
 msgid "Edge detection"
 msgstr "边沿检测"
-
-msgid "Clear all"
-msgstr "清除所有"
 
 msgid "Triangles"
 msgstr "三角形"
@@ -232,14 +229,11 @@ msgstr "世界坐标"
 msgid "°"
 msgstr "°"
 
-msgid "Position:"
-msgstr "位置："
+msgid "Size"
+msgstr "大小"
 
 msgid "%"
 msgstr "%"
-
-msgid "Size"
-msgstr "大小"
 
 msgid "uniform scale"
 msgstr "等比例缩放"
@@ -342,20 +336,35 @@ msgstr "外观面检测"
 msgid "Perform Recognition"
 msgstr "执行检测"
 
-msgid "Cube"
-msgstr "立方体"
+msgid "Reset direction"
+msgstr "重置方向"
 
-msgid "Cylinder"
-msgstr "圆柱体"
+msgid "Brush size"
+msgstr "画刷尺寸"
 
-msgid "Cone"
-msgstr "锥体"
+msgid "Brush shape"
+msgstr "画刷形状"
 
-msgid "Timelapse Wipe Tower"
-msgstr "延时摄影擦料塔"
+msgid "Enforce seam"
+msgstr "添加Z缝"
 
-msgid "Add Modifier"
-msgstr "添加修改器"
+msgid "Block seam"
+msgstr "屏蔽Z缝"
+
+msgid "Remove selection"
+msgstr "移除绘制"
+
+msgid "Seam painting"
+msgstr "Z缝绘制"
+
+msgid "Entering Seam painting"
+msgstr ""
+
+msgid "Leaving Seam painting"
+msgstr "推出Z缝绘制"
+
+msgid "Paint-on seam editing"
+msgstr ""
 
 msgid "Notice"
 msgstr "通知"
@@ -423,6 +432,16 @@ msgstr "严重错误"
 msgid "BambuStudio got an unhandled exception: %1%"
 msgstr "Bambu Studio捕捉到一个未处理的异常：%1%"
 
+msgid "Downloading Bambu Network Plug-in"
+msgstr "正在下载Bambu网络插件"
+
+msgid "Incorrect password"
+msgstr "访问码不正确"
+
+#, c-format, boost-format
+msgid "Connect %s failed! [SN:%s, code=%s]"
+msgstr "连接 %s 失败 [SN:%s, code=%s]"
+
 msgid ""
 "BambuStudio configuration file may be corrupted and is not abled to be "
 "parsed.Please delete the file and try again."
@@ -445,11 +464,14 @@ msgstr "正在加载配置"
 msgid "Click to download new version in default browser: %s"
 msgstr "在默认浏览器中点击下载最新版本: %s"
 
-msgid "New version of Bambu Studio"
-msgstr "新版本的Bambu Studio"
-
 msgid "The Bambu Studio needs an upgrade"
 msgstr "Bambu Studio需要进行升级"
+
+msgid "This is the newest version."
+msgstr "已经是最新版本。"
+
+msgid "Info"
+msgstr "信息"
 
 msgid "Loading user presets..."
 msgstr "正在加载用户预设..."
@@ -472,19 +494,30 @@ msgstr "选择一个或多个文件（3mf/step/stl/obj/amf）："
 msgid "Choose one file (gcode/.gco/.g/.ngc/ngc):"
 msgstr "选择一个文件（gcode/.gco/.g/.ngc/ngc）："
 
-msgid "Login information expired. Please login again."
-msgstr "登录信息过期。请重新登录。"
+msgid "Some presets are modified."
+msgstr "预设已被修改。"
+
+msgid ""
+"You can keep the modifield presets to the new project, discard or save "
+"changes as new presets."
+msgstr "您可以保留未保存修改的预设应用到新项目中，或者选择忽略。"
+
+msgid "User logged out"
+msgstr "用户登出"
+
+msgid "new or open project file is not allowed during the slicing process!"
+msgstr "在切片过程不允许新建或打开项目文件！"
+
+msgid "Open Project"
+msgstr "打开项目"
 
 msgid ""
 "The version of Bambu studio is too low and needs to be updated to the latest "
 "version before it can be used normally"
 msgstr "Bambu Studio版本过低，需要更新到最新版本方可正常使用"
 
-msgid "This is the newest version."
-msgstr "已经是最新版本。"
-
-msgid "Info"
-msgstr "信息"
+msgid "Login information expired. Please login again."
+msgstr "登录信息过期。请重新登录。"
 
 msgid "Loading"
 msgstr "载入中"
@@ -503,12 +536,6 @@ msgstr "语言"
 
 msgid "*"
 msgstr "*"
-
-msgid "G-code files can not be loaded with models together!"
-msgstr "G-code文件不能和模型一起加载"
-
-msgid "G-code loading"
-msgstr "正在加载G-code文件"
 
 msgid "Select a G-code file:"
 msgstr "选择一个G-code文件："
@@ -597,6 +624,18 @@ msgstr "删除所选对象"
 
 msgid "Load..."
 msgstr "加载..."
+
+msgid "Cube"
+msgstr "立方体"
+
+msgid "Cylinder"
+msgstr "圆柱体"
+
+msgid "Cone"
+msgstr "锥体"
+
+msgid "Timelapse Wipe Tower"
+msgstr "延时摄影擦料塔"
 
 msgid "Add settings"
 msgstr "添加设置"
@@ -794,6 +833,9 @@ msgstr "锁定"
 msgid "Name"
 msgstr "名称"
 
+msgid "Fila."
+msgstr "耗材丝"
+
 #, c-format, boost-format
 msgid "%1$d error repaired"
 msgid_plural "%1$d errors repaired"
@@ -841,6 +883,9 @@ msgstr "错误！"
 
 msgid "Generic"
 msgstr "通用"
+
+msgid "Add Modifier"
+msgstr "添加修改器"
 
 msgid "Deleting the last solid part is not allowed."
 msgstr "不允许删除对象的最后一个实体零件。"
@@ -976,9 +1021,7 @@ msgstr "走线类型"
 msgid "No printer"
 msgstr "无打印机"
 
-msgid ""
-"Heat the nozzle to target \n"
-"temperature"
+msgid "Heat the nozzle to target temperature"
 msgstr "加热喷嘴到目标温度"
 
 msgid "Cut filament"
@@ -987,9 +1030,7 @@ msgstr "切断耗材丝"
 msgid "Pull back current filament"
 msgstr "抽回当前耗材丝"
 
-msgid ""
-"Push new filament \n"
-"into extruder"
+msgid "Push new filament into extruder"
 msgstr "送出新的耗材丝到挤出机"
 
 msgid "Purge old filament"
@@ -1059,7 +1100,7 @@ msgid ""
 msgstr "自动摆放失败，处理对象几何数据时遇到异常。"
 
 msgid "Arranging"
-msgstr "正在摆放"
+msgstr "自动摆盘中"
 
 msgid "Arranging canceled."
 msgstr "已取消自动摆放。"
@@ -1098,7 +1139,7 @@ msgid "Orienting..."
 msgstr "自动朝向中..."
 
 msgid "Orienting"
-msgstr "自动朝向"
+msgstr "自动朝向中..."
 
 msgid "Error! Unable to create thread!"
 msgstr "发生错误，无法创建线程。"
@@ -1154,7 +1195,7 @@ msgid "Failed uploading print file"
 msgstr "打印任务上传失败"
 
 msgid "Wrong Access code"
-msgstr ""
+msgstr "访问码错误"
 
 msgid "Sending print job over LAN"
 msgstr "正在通过局域网发送打印任务"
@@ -1162,12 +1203,39 @@ msgstr "正在通过局域网发送打印任务"
 msgid "Sending print job through cloud service"
 msgstr "正在通过云端服务发送打印任务"
 
+msgid "Service Unavailable"
+msgstr "服务不可用"
+
+msgid "Unkown Error."
+msgstr "未知错误"
+
 msgid "Sending print configuration"
 msgstr "正在发送打印配置"
 
 #, c-format, boost-format
-msgid "Successfully sent.Will automatically jump to the device page in %s s"
-msgstr "已发送完成，即将自动跳转到设备页面 (%s 秒）"
+msgid "Successfully sent. Will automatically jump to the device page in %s s"
+msgstr "已发送完成，即将自动跳转到设备页面（%s秒）"
+
+msgid "An SD card needs to be inserted before printing via LAN."
+msgstr "需要插入SD卡后方可发送局域网打印"
+
+msgid "Downloading"
+msgstr "下载中"
+
+msgid "Download failed"
+msgstr "下载失败"
+
+msgid "Cancelled"
+msgstr "已取消"
+
+msgid "Finish"
+msgstr "完成"
+
+msgid "Installing"
+msgstr "安装中"
+
+msgid "Install failed"
+msgstr "安装失败"
 
 msgid "Portions copyright"
 msgstr "部分版权"
@@ -1203,11 +1271,37 @@ msgstr "本软件使用开源组件，其版权和其他所有权属于各自的
 msgid "About %s"
 msgstr "关于 %s"
 
+msgid ""
+"Bambu Studio is based on PrusaSlicer by PrusaResearch and SuperSlicer by "
+"Merill(supermerill)."
+msgstr ""
+"Bambu Studio是以PrusaResearch的PrusaSlicer和Merill（supermerill）的"
+"SuperSlicer为基础的。"
+
+msgid "PrusaSlicer is originally based on Slic3r by Alessandro Ranellucci."
+msgstr "MerillPrusasicle最初是以Alessandro Ranellucci为基础的Slic3r。"
+
+msgid ""
+"Slic3r was created by Alessandro Ranellucci with the help of many other "
+"contributors."
+msgstr "Slic3r是由Alessandro Ranellucci和许多其他贡献者的帮助下创建的。"
+
+msgid "Bambu Studio also referenced some ideas from Cura by Ultimaker."
+msgstr "Bambu Studio还引入了Ultimaker从Cura提出的一些想法。"
+
+msgid ""
+"There many parts of the software that come from community contributions, so "
+"we're unable to list them one-by-one, and instead, they'll be attributed in "
+"the corresponding code comments."
+msgstr ""
+"软件中的很多部分都来自于社区贡献,因此，我们无法逐一列出他们，相反的，他们将被"
+"注释于相应的代码中。"
+
+msgid "AMSMaterialsSetting"
+msgstr ""
+
 msgid "Colour"
 msgstr "颜色"
-
-msgid "SN"
-msgstr ""
 
 msgid ""
 "Nozzle\n"
@@ -1224,8 +1318,21 @@ msgstr "最小"
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "输入的范围在 %1% 和 %2% 之间"
 
+msgid "SN"
+msgstr ""
+
 msgid "Confirm"
 msgstr "确定"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "AMS Slots"
+msgstr "AMS舱内材料"
+
+msgid ""
+"Note: Only the AMS slots loaded with the same material type can be selected."
+msgstr "仅允许选择放入同种材质耗材丝的AMS槽位"
 
 msgid "Insertion update"
 msgstr "插入料时更新"
@@ -1494,15 +1601,6 @@ msgstr ""
 "否 - 暂不使用旋转模式"
 
 msgid ""
-"When recording timelapse without toolhead, it is recommended to add a "
-"\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\".\n"
-msgstr ""
-"推荐在录制无工具头延时摄影时，添加一个\"延时摄影擦料塔\"：\n"
-"在构建板的空白位置点击鼠标右键，选择\"添加标准模型\"->\"延时摄影擦料塔\""
-
-msgid ""
 "Prime tower does not work when Adaptive Layer Height or Independent Support "
 "Layer Height is on.\n"
 "Which do you want to keep?\n"
@@ -1650,6 +1748,12 @@ msgstr "验证失败。"
 
 msgid "Update failed."
 msgstr "更新失败。"
+
+msgid "Failed to start printing job"
+msgstr "发起打印任务失败"
+
+msgid "parameter name"
+msgstr "参数名称"
 
 msgid "N/A"
 msgstr "N/A"
@@ -1893,8 +1997,11 @@ msgstr "添加新盘"
 msgid "Auto orient"
 msgstr "自动朝向"
 
-msgid "Auto arrange"
-msgstr "自动摆盘"
+msgid "Arrange all objects"
+msgstr "全局整理"
+
+msgid "Arrange objects on selected plates"
+msgstr "单盘整理"
 
 msgid "Split to objects"
 msgstr "拆分为对象"
@@ -1942,11 +2049,12 @@ msgid "Only the object being edit is visible."
 msgstr "只有正在编辑的对象是可见的。"
 
 msgid ""
-"An object is layed over the boundary of plate.\n"
-"Please solve the problem by moving it totally inside or outside plate."
+"An object is laid over the boundary of plate or exceeds the height limit.\n"
+"Please solve the problem by moving it totally on or off the plate, and "
+"confirming that the height is within the build volume."
 msgstr ""
-"检测到有对象放置在盘的边界。\n"
-"请把它整体移动到盘内或盘外以解决此问题。"
+"对象被放置在构建板的边界上或超过高度限制。\n"
+"请通过将其完全移动到构建板内或构建板外，并确认高度在构建空间以内来解决问题。"
 
 msgid "Calibration"
 msgstr "校准"
@@ -1967,6 +2075,9 @@ msgstr "校准流程"
 
 msgid "Start Calibration"
 msgstr "开始校准"
+
+msgid "Completed"
+msgstr "已完成"
 
 msgid "Calibrating"
 msgstr "校准中"
@@ -1990,35 +2101,8 @@ msgstr ""
 "你可以在打印机“设置->网络->连接->访问码\"\n"
 "查看，如下图所示："
 
-msgid "Creating"
-msgstr "正在创建"
-
-msgid "Uploading"
-msgstr "正在上传"
-
-msgid "Waiting"
-msgstr "等待中"
-
-msgid "Sending"
-msgstr "发送中"
-
-msgid "Finished"
-msgstr "完成"
-
-msgid "Please fill report first."
-msgstr "请先填写报告。"
-
-msgid "Unable to create zip file"
-msgstr "无法创建zip压缩文件"
-
-msgid "Enter a search term"
-msgstr "输入搜索内容"
-
-msgid "Online"
-msgstr "在线"
-
-msgid "Offline"
-msgstr "离线"
+msgid "Invalid input."
+msgstr ""
 
 msgid "Application is closing"
 msgstr "正在关闭应用程序"
@@ -2040,9 +2124,6 @@ msgstr "设备"
 
 msgid "Project"
 msgstr "项目"
-
-msgid "Debug"
-msgstr "调试"
 
 msgid "Slice"
 msgstr "切片"
@@ -2128,9 +2209,6 @@ msgstr "新建项目"
 msgid "Start a new project"
 msgstr "新建一个项目"
 
-msgid "Open Project"
-msgstr "打开项目"
-
 msgid "Open a project file"
 msgstr "打开项目文件"
 
@@ -2160,6 +2238,12 @@ msgstr "导出所有对象为STL"
 
 msgid "Export current Sliced file"
 msgstr "导出当前已切片的文件"
+
+msgid "Export G-code"
+msgstr "导出 G-code"
+
+msgid "Export current plate as G-code"
+msgstr "导出当前盘的G-code"
 
 msgid "Export"
 msgstr "导出"
@@ -2218,24 +2302,6 @@ msgstr "取消所有选中"
 msgid "Deselects all objects"
 msgstr "取消所有选中"
 
-msgid "Show Model Mesh(TODO)"
-msgstr "显示模型网格"
-
-msgid "Display triangles of models"
-msgstr "显示模型面片"
-
-msgid "Show Model Shadow(TODO)"
-msgstr "显示模型阴影"
-
-msgid "Display shadow of objects"
-msgstr "显示对象阴影"
-
-msgid "Show Printable Box(TODO)"
-msgstr "显示打印区边界"
-
-msgid "Display printable box"
-msgstr "显示打印区边界"
-
 msgid "Use Perspective View"
 msgstr "使用透视视角"
 
@@ -2250,6 +2316,18 @@ msgstr "视图"
 
 msgid "Help"
 msgstr "帮助"
+
+msgid "&File"
+msgstr ""
+
+msgid "&Edit"
+msgstr ""
+
+msgid "&View"
+msgstr ""
+
+msgid "&Help"
+msgstr ""
 
 msgid "&Open G-code"
 msgstr "打开G-code"
@@ -2282,15 +2360,6 @@ msgstr ""
 msgid "Quit %s"
 msgstr ""
 
-msgid "&File"
-msgstr ""
-
-msgid "&View"
-msgstr ""
-
-msgid "&Help"
-msgstr ""
-
 msgid "Save configuration as:"
 msgstr "预设另存为："
 
@@ -2305,15 +2374,15 @@ msgstr "打印丝设置"
 
 msgid ""
 "Do you want to synchronize your personal data from Bambu Cloud? \n"
-"Contains the following information:\n"
+"It contains the following information:\n"
 "1. The Process presets\n"
 "2. The Filament presets\n"
 "3. The Printer presets\n"
 msgstr ""
-"是否从Bambu云同步您的个人数据？\n"
-"包含以下信息：\n"
+"想从Bambu 云同步你的个人数据吗?\n"
+"包含如下信息:\n"
 "1. 工艺预设\n"
-"2. 耗材丝预设\n"
+"2. 打印丝预设\n"
 "3. 打印机预设\n"
 
 msgid "Synchronization"
@@ -2366,11 +2435,11 @@ msgstr "选项："
 msgid "Swap Y/Z axes"
 msgstr "交换Y/Z轴"
 
-msgid "Close"
-msgstr "关闭"
+msgid "Camera"
+msgstr "摄像机"
 
-msgid "Monitoring"
-msgstr "实时视频"
+msgid "Video"
+msgstr "录像"
 
 msgid "Printing Progress"
 msgstr "打印进度"
@@ -2384,8 +2453,14 @@ msgstr "停止"
 msgid "0%"
 msgstr "0%"
 
+msgid "Clean"
+msgstr "清除"
+
 msgid "Control"
 msgstr "控制"
+
+msgid "Print Options"
+msgstr "打印选项"
 
 msgid "100%"
 msgstr "100%"
@@ -2410,6 +2485,9 @@ msgstr "调试信息"
 
 msgid "Printing List"
 msgstr "项目切片"
+
+msgid "Downloading..."
+msgstr "下载中..."
 
 msgid "Resume"
 msgstr "继续"
@@ -2438,14 +2516,14 @@ msgstr "固件更新"
 msgid "HMS"
 msgstr ""
 
-msgid "Please upgrade your printer first"
-msgstr "请先升级打印机固件"
-
 msgid "Failed to connect to the server"
 msgstr "无法连接服务器"
 
 msgid "Failed to connect to the printer"
 msgstr "无法连接打印机"
+
+msgid "Connecting..."
+msgstr "连接中..."
 
 msgid "OK"
 msgstr "确认"
@@ -2556,6 +2634,9 @@ msgstr "导出成功."
 msgid " (Repair)"
 msgstr "（修复）"
 
+msgid " Click here to install it."
+msgstr "点击此处安装"
+
 msgid "WARNING:"
 msgstr "警告："
 
@@ -2608,6 +2689,15 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "底部"
 
+msgid "Spaghetti Detection"
+msgstr "炒面检测"
+
+msgid "Stop printing when spaghetti detected"
+msgstr "当发生炒面时停止打印"
+
+msgid "First Layer Inspection"
+msgstr "首层扫描"
+
 msgid "Switch to per-object setting mode to edit modifier settings."
 msgstr "切换到对象模式以编辑修改器的设置。"
 
@@ -2624,7 +2714,7 @@ msgid "Advance"
 msgstr "高级"
 
 msgid "Compare presets"
-msgstr "配置集比较"
+msgstr "比较预设"
 
 msgid "View all object's settings"
 msgstr "查看所有对象的配置"
@@ -2692,14 +2782,17 @@ msgstr "恢复"
 msgid "Loading file: %s"
 msgstr "加载文件：%s"
 
-msgid "The Config is not compatible and can not be loaded."
-msgstr "该配置不兼容，无法被加载。"
+msgid "The 3mf is not from Bambu Lab, load geometry data only."
+msgstr "该3mf文件不兼容，仅加载几何数据。"
 
-msgid "Incompatible 3mf"
-msgstr "不兼容的3mf"
+msgid "Load 3mf"
+msgstr "加载3mf"
 
-msgid "the 3mf is not compatible, load geometry data only!"
-msgstr "该3mf文件不兼容，仅加载几何数据！"
+msgid "The Config can not be loaded."
+msgstr ""
+
+msgid "The 3mf is generated by old Bambu Studio, load geometry data only."
+msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -2712,6 +2805,12 @@ msgstr "建议升级您的软件版本。\n"
 
 msgid "Newer 3mf version"
 msgstr "较新的3mf版本"
+
+msgid "The 3mf is not compatible, load geometry data only!"
+msgstr ""
+
+msgid "Incompatible 3mf"
+msgstr "不兼容的3mf"
 
 msgid "Name of components inside step file is not UTF8 format!"
 msgstr "step 文件中的部件名称包含非UTF8格式的字符！"
@@ -2749,13 +2848,16 @@ msgstr "将这些文件加载为一个多零件对象？\n"
 msgid "Object with multiple parts was detected"
 msgstr "检测到多零件对象"
 
-msgid ""
-"Preview only mode:\n"
-"The loaded file contains gcode only."
-msgstr ""
-
 msgid "The file does not contain any geometry data."
 msgstr "此文件不包含任何几何数据。"
+
+msgid ""
+"Your object appears to be too large, Do you want to scale it down to fit the "
+"heat bed automatically?"
+msgstr "对象看起来太大，希望将对象自动缩小以适应热床吗？"
+
+msgid "Object too large"
+msgstr "对象太大"
 
 msgid "Export STL file:"
 msgstr "导出 STL 文件："
@@ -2791,25 +2893,25 @@ msgstr "正在切片盘%d"
 msgid "Please resolve the slicing errors and publish again."
 msgstr "请解决切片错误后再重新发布。"
 
-msgid "Some presets are modified."
-msgstr "预设已被修改。"
+msgid ""
+"Network Plug-in is not detected. Network related features are unavailable."
+msgstr "未检测到网络插件。网络相关功能不可用。"
+
+msgid ""
+"Preview only mode:\n"
+"The loaded file contains gcode only, Can not enter the Prepare page"
+msgstr ""
+"仅预览模式：\n"
+"被加载的文件仅包含G-Code，不支持进入准备页面"
 
 msgid "You can keep the modified presets to the new project or discard them"
 msgstr "您可以保留修改的预设到新项目中或者忽略这些修改"
-
-msgid ""
-"You can keep the modifield presets to the new project, discard or save "
-"changes as new presets."
-msgstr "您可以保留未保存修改的预设应用到新项目中，或者选择忽略。"
 
 msgid "Creating a new project"
 msgstr "创建新项目"
 
 msgid "Load project"
 msgstr "加载项目"
-
-msgid "Preview only mode for gcode file."
-msgstr ""
 
 msgid "The selected file"
 msgstr "已选择的文件"
@@ -2835,11 +2937,17 @@ msgstr "仅导入模型数据"
 msgid "Only one G-code file can be opened at the same time."
 msgstr "只能同时打开一个G-code文件。"
 
+msgid "G-code loading"
+msgstr "正在加载G-code文件"
+
+msgid "G-code files can not be loaded with models together!"
+msgstr "G-code文件不能和模型一起加载"
+
 msgid "Can not add models when in preview mode!"
-msgstr ""
+msgstr "在预览模式不允许添加模型"
 
 msgid "Add Models"
-msgstr ""
+msgstr "添加模型"
 
 msgid "All objects will be removed, continue?"
 msgstr "即将删除所有对象，是否继续？"
@@ -2868,9 +2976,6 @@ msgid ""
 msgstr ""
 "逐件打印：\n"
 "建议使用自动摆盘避免打印时发生碰撞。"
-
-msgid "Export G-code"
-msgstr "导出 G-code"
 
 msgid "Send G-code"
 msgstr "发送 G 代码"
@@ -3089,7 +3194,7 @@ msgstr "保存调试设置"
 msgid "DEBUG settings have saved successfully!"
 msgstr "DEBUG模式生效!"
 
-msgid "Swith cloud environment, Please login again!"
+msgid "Switch cloud environment, Please login again!"
 msgstr "切换云环境，请重新登录!"
 
 msgid "System presets"
@@ -3221,6 +3326,12 @@ msgstr "为“%1%”，添加“%2%”为一个新预设"
 msgid "Simply switch to \"%1%\""
 msgstr "直接切换到“%1%”"
 
+msgid "Online"
+msgstr "在线"
+
+msgid "Offline"
+msgstr "离线"
+
 msgid "My Device"
 msgstr "我的设备"
 
@@ -3229,6 +3340,9 @@ msgstr "其他设备"
 
 msgid "Input access code"
 msgstr "输入访问码"
+
+msgid "Log out successful."
+msgstr "登出成功。"
 
 msgid "Busy"
 msgstr "忙碌"
@@ -3270,7 +3384,7 @@ msgid "Synchronizing device information"
 msgstr "正在同步设备信息"
 
 msgid "Synchronizing device information time out"
-msgstr "同步设备信息超时，请重试"
+msgstr "同步设备信息超时"
 
 msgid "Cannot send the print task when the upgrade is in progress"
 msgstr "设备升级中，无法发送打印任务"
@@ -3282,10 +3396,16 @@ msgstr "打印机正在执行指令，请在其结束后重新发起打印"
 msgid "The printer is busy on other print job"
 msgstr "打印机正在执行其他打印任务"
 
+#, c-format, boost-format
 msgid ""
-"The firmware versions of printer and AMS are too low.Please update to the "
-"latest version before sending the print job"
-msgstr "打印机和AMS固件版本过低，请更新到最新版本方可发送打印"
+"Filament %s exceeds the number of AMS slots. Please update the printer "
+"firmware to support AMS slot assignment."
+msgstr "材料编号%s超出AMS槽位数量，请更新打印机固件以支持AMS槽位映射功能"
+
+msgid ""
+"Filament exceeds the number of AMS slots. Please update the printer firmware "
+"to support AMS slot assignment."
+msgstr "材料编号超出AMS槽位数量，请更新打印机固件以支持AMS槽位映射功能"
 
 msgid ""
 "Filaments to AMS slots mappings have been established. You can click a "
@@ -3298,6 +3418,25 @@ msgid ""
 "Please click each filament above to specify its mapping AMS slot before "
 "sending the print job"
 msgstr "请在发送打印前点击上方各个耗材丝，指定其所对应的AMS槽位"
+
+#, c-format, boost-format
+msgid ""
+"Filament %s does not match the filament in AMS slot %s. Please update the "
+"printer firmware to support AMS slot assignment."
+msgstr ""
+"材料编号%s和AMS槽位%s中的耗材丝材质不匹配，请更新打印机固件以支持AMS槽位映射"
+"功能"
+
+msgid ""
+"Filament does not match the filament in AMS slot. Please update the printer "
+"firmware to support AMS slot assignment."
+msgstr ""
+"材料编号和AMS槽位中的耗材丝材质不匹配，请更新打印机固件以支持AMS槽位映射功能"
+
+msgid ""
+"The printer firmware only supports sequential mapping of filament => AMS "
+"slot."
+msgstr "打印机固件版本仅支持材料=>AMS槽位的顺序映射。"
 
 msgid "Preparing print job"
 msgstr "正在准备打印任务"
@@ -3326,9 +3465,6 @@ msgstr "请先登录。"
 msgid "There was a problem connecting to the printer. Please try again."
 msgstr "连接打印机时发生错误。 请重试。"
 
-msgid "Log out successful."
-msgstr "登出成功。"
-
 msgid "Failed to log out."
 msgstr "登出失败。"
 
@@ -3339,6 +3475,15 @@ msgstr "保存当前 %s"
 
 msgid "Delete this preset"
 msgstr "删除此预设"
+
+msgid ""
+"When recording timelapse without toolhead, it is recommended to add a "
+"\"Timelapse Wipe Tower\" \n"
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\".\n"
+msgstr ""
+"在录制无工具头延时摄影视频时，建议添加“延时摄影擦料塔”\n"
+"右键单击构建板的空白位置，选择“添加标准模型”->“延时摄影擦料塔”。\n"
 
 msgid "Line width"
 msgstr "线宽"
@@ -3390,8 +3535,8 @@ msgstr "换料冲刷选项"
 msgid "Special mode"
 msgstr "特殊模式"
 
-msgid "Output file"
-msgstr "输出文件"
+msgid "G-code output"
+msgstr "G-code 输出"
 
 msgid "Frequent"
 msgstr "常用"
@@ -3783,12 +3928,6 @@ msgstr "到"
 msgid "Login"
 msgstr "登录"
 
-msgid "Filaments Selection"
-msgstr "材料选择"
-
-msgid "Printer Selection"
-msgstr "打印机选择"
-
 msgid "The configuration package is changed in previous Config Guide"
 msgstr "参数配置包在之前的配置向导中发生了变更"
 
@@ -3804,58 +3943,17 @@ msgstr "对象列表"
 msgid "Import geometry data from STL/STEP/3MF/OBJ/AMF files."
 msgstr "从STL/STEP/3MF/OBJ/AMF文件中导入几何数据"
 
-msgid "Select all objects"
-msgstr "选择所有对象"
-
 msgid "Copy to clipboard"
 msgstr "复制到剪贴板"
 
 msgid "Paste from clipboard"
 msgstr "从剪切板粘贴"
 
-msgid "Camera view - Default"
-msgstr "摄像机视角 - 默认"
-
-msgid "Camera view - Top"
-msgstr "摄像机视角 - 顶部"
-
-msgid "Camera view - Bottom"
-msgstr "摄像机视角 - 底部"
-
-msgid "Camera view - Front"
-msgstr "摄像机视角 - 前面"
-
-msgid "Camera view - Behind"
-msgstr "摄像机视角 - 后面"
-
-msgid "Camera Angle - Left side"
-msgstr "摄像机视角 - 左面"
-
-msgid "Camera Angle - Right side"
-msgstr "摄像机视角 - 右面"
-
-msgid "keyboard 1-9: set filament for object/part"
-msgstr "按键1-9：设置对象/零件的耗材丝"
-
 msgid "Show keyboard shortcuts list"
 msgstr "显示键盘快捷键列表"
 
 msgid "Global shortcuts"
 msgstr "全局快捷键"
-
-msgid "Arrange all objects"
-msgstr "全局整理"
-
-msgid "Arrange objects on selected plates"
-msgstr "单盘整理"
-
-msgid ""
-"Auto orientates selected objects or all objects.If there are selected "
-"objects, it just orientates the selected ones.Otherwise, it will orientates "
-"all objects in the project."
-msgstr ""
-"自动调整选定零件/所有零件的方向,\n"
-"有选定零件时调整选定零件的朝向,没有选择零件时调整所有零件的朝向"
 
 msgid ""
 "Auto orientates selected objects or all objects.If there are selected "
@@ -3865,11 +3963,32 @@ msgstr ""
 "自动调整选定零件/所有零件的方向,\n"
 "有选定零件时调整选定零件的朝向,没有选择零件时调整当前盘所有零件的朝向"
 
+msgid "Collapse/Expand the sidebar"
+msgstr "收起/展开 侧边栏"
+
+msgid "⌘+Any arrow"
+msgstr "⌘+方向键"
+
+msgid "Movement in camera space"
+msgstr "沿相机视角移动对象"
+
+msgid "⌥+Left mouse button"
+msgstr "⌥+鼠标左键"
+
+msgid "Select a part"
+msgstr "选择单个零件"
+
 msgid "⌘+Left mouse button"
 msgstr "⌘+鼠标左键"
 
 msgid "Select multiple objects"
 msgstr "选择多个对象"
+
+msgid "Ctrl+Any arrow"
+msgstr "Ctrl+方向键"
+
+msgid "Alt+Left mouse button"
+msgstr "Alt+鼠标左键"
 
 msgid "Ctrl+Left mouse button"
 msgstr "Ctrl+鼠标左键"
@@ -3910,17 +4029,53 @@ msgstr "Shift+方向键"
 msgid "Movement step set to 1 mm"
 msgstr "沿X、Y轴以1mm为步进移动对象"
 
-msgid "⌘+Any arrow"
-msgstr "⌘+方向键"
+msgid "keyboard 1-9: set filament for object/part"
+msgstr "按键1-9：设置对象/零件的耗材丝"
 
-msgid "Movement in camera space"
-msgstr "沿相机视角移动对象"
+msgid "Camera view - Default"
+msgstr "摄像机视角 - 默认"
 
-msgid "Ctrl+Any arrow"
-msgstr "Ctrl+方向键"
+msgid "Camera view - Top"
+msgstr "摄像机视角 - 顶部"
 
-msgid "Collapse/Expand the sidebar"
-msgstr "收起/展开 侧边栏"
+msgid "Camera view - Bottom"
+msgstr "摄像机视角 - 底部"
+
+msgid "Camera view - Front"
+msgstr "摄像机视角 - 前面"
+
+msgid "Camera view - Behind"
+msgstr "摄像机视角 - 后面"
+
+msgid "Camera Angle - Left side"
+msgstr "摄像机视角 - 左面"
+
+msgid "Camera Angle - Right side"
+msgstr "摄像机视角 - 右面"
+
+msgid "Select all objects"
+msgstr "选择所有对象"
+
+msgid "Gizmo move"
+msgstr "移动工具"
+
+msgid "Gizmo scale"
+msgstr "缩放工具"
+
+msgid "Gizmo rotate"
+msgstr "旋转工具"
+
+msgid "Gizmo cut"
+msgstr "剪切工具"
+
+msgid "Gizmo Place face on bed"
+msgstr "选择底面"
+
+msgid "Gizmo SLA support points"
+msgstr "SLA支撑点"
+
+msgid "Gizmo FDM paint-on seam"
+msgstr "FDM绘制接缝"
 
 msgid "Plater"
 msgstr "准备"
@@ -4341,6 +4496,14 @@ msgstr "可打印区域"
 msgid "Bed exclude area"
 msgstr "不可打印区域"
 
+msgid ""
+"Unprintable area in XY plane. For example, X1 Series printers use the front "
+"left corner to cut filament during filament change. The area is expressed as "
+"polygon by points in following format: \"XxY, XxY, ...\""
+msgstr ""
+"XY平面上的不可打印区域。例如，X1系列打印机在换料过程中，会使用左前角区域来切"
+"断耗材丝。这个多边形区域由以下格式的点表示：“XxY，XxY，…”"
+
 msgid "Elephant foot compensation"
 msgstr "象脚补偿"
 
@@ -4623,6 +4786,20 @@ msgid ""
 msgstr ""
 "不对整个桥接面进行支撑，否则支撑体会很大。不是很长的桥接通常可以无支撑直接打"
 "印。"
+
+msgid "Thick bridges"
+msgstr "厚桥"
+
+msgid "Layers and Perimeters"
+msgstr "层和墙"
+
+msgid ""
+"If enabled, bridges are more reliable, can bridge longer distances, but may "
+"look worse. If disabled, bridges look better but are reliable just for "
+"shorter bridged distances."
+msgstr ""
+"如果启用，桥接会更可靠，可以桥接更长的距离，但可能看起来更糟。如果关闭，桥梁"
+"看起来更好，但只适用于较短的桥接距离。"
 
 msgid "Max bridge length"
 msgstr "最大桥接长度"
@@ -5273,8 +5450,11 @@ msgstr "减小填充回抽"
 
 msgid ""
 "Don't retract when the travel is in infill area absolutely. That means the "
-"oozing can't been seen"
-msgstr "当完全在填充区域内部空驶时不会抽，即便渗出滴料也是不可见的。"
+"oozing can't been seen. This can reduce times of retraction for complex "
+"model and save printing time, but make slicing and G-code generating slower"
+msgstr ""
+"当空驶完全在填充区域内时不触发回抽。这意味着即使漏料也是不可见的。对于复杂模"
+"型，该设置能够减少回抽次数以及打印时长，但是会造成G-code生成变慢"
 
 msgid "Enable"
 msgstr "开启"
@@ -5457,8 +5637,8 @@ msgstr "内部实心填充的线宽"
 msgid "Speed of internal solid infill, not the top and bottom surface"
 msgstr "内部实心填充的速度，不是顶面和底面。"
 
-msgid "Spiral mode"
-msgstr "旋转模式"
+msgid "Spiral vase"
+msgstr "旋转花瓶"
 
 msgid ""
 "Spiralize smooths out the z moves of the outer contour. And turns a solid "
@@ -5468,18 +5648,14 @@ msgstr ""
 "沿着对象的外轮廓螺旋上升，将实体模型转变为只有底面实心层和侧面单层墙壁的打"
 "印。最后生成的打印件没有接缝。"
 
-msgid "Timelapse without toolhead"
-msgstr "无工具头延时摄影"
-
 msgid ""
 "Record timelapse video of printing without showing toolhead. In this mode "
 "the toolhead docks near the excess chute at each layer change, and then a "
 "snapshot is taken with the chamber camera. When printing finishes a "
 "timelapse video is composed of all the snapshots."
 msgstr ""
-"录制无工具头延时摄影。在这种模式下，工具头会在每层切换时停靠在吐料槽附近，同"
-"时机箱摄像头会记录一张快照。当打印结束时，所有这些快照会组成一段延时摄影录"
-"像。"
+"录制打印的延时摄影视频，但不显示工具头。在该模式下，工具头会在换层时停靠在吐"
+"料槽附近，然后用内置相机拍摄快照。打印完成后，把所有快照组成延时摄影视频。"
 
 msgid "Temperature variation"
 msgstr "软化温度"
@@ -6010,20 +6186,202 @@ msgstr "支撑：正在修补层%d的空洞"
 msgid "Support: propagate branches at layer %d"
 msgstr "支撑：正在生长层%d的树枝"
 
+#~ msgid "Clipping of view"
+#~ msgstr "剪切视图"
+
+#~ msgid "the 3mf is not compatible, load geometry data only!"
+#~ msgstr "该3mf文件不兼容，仅加载几何数据！"
+
+#~ msgid ""
+#~ "Auto orientates selected objects or all objects.If there are selected "
+#~ "objects, it just orientates the selected ones.Otherwise, it will "
+#~ "orientates all objects in the project."
+#~ msgstr ""
+#~ "自动调整选定零件/所有零件的方向,\n"
+#~ "有选定零件时调整选定零件的朝向,没有选择零件时调整所有零件的朝向"
+
+#~ msgid "The Config is not compatible and can not be loaded."
+#~ msgstr "该配置不兼容，无法被加载。"
+
+#~ msgid "default value"
+#~ msgstr "默认值"
+
+#~ msgid "Auto arrange"
+#~ msgstr "自动摆盘"
+
+#~ msgid ""
+#~ "The filament index exceeds the AMS's slot count and cannot send the print "
+#~ "job."
+#~ msgstr ""
+#~ "打印机固件仅支持材料=>AMS槽位的顺序映射。材料编号超过AMS的槽位数量，无法发"
+#~ "送打印任务。"
+
+#~ msgid "Timelapse without toolhead"
+#~ msgstr "无工具头延时摄影"
+
+#~ msgid "Downloading Bambu Network plug-in"
+#~ msgstr "正在下载Bambu网络插件"
+
+#~ msgid "Filaments Selection"
+#~ msgstr "材料选择"
+
+#~ msgid "Printer Selection"
+#~ msgstr "打印机选择"
+
+#~ msgid "Spiral mode"
+#~ msgstr "旋转模式"
+
+#~ msgid "Fragment area"
+#~ msgstr "碎片面积阈值"
+
+#~ msgid "Clear all"
+#~ msgstr "清除所有"
+
+#~ msgid "Connect %s[SN:%s] failed!"
+#~ msgstr "连接 %s[SN:%s]失败."
+
+#~ msgid "Printer firmware does not support material = >ams slot mapping."
+#~ msgstr "打印机固件不支持材料=>AMS槽位映射"
+
+#~ msgid "Creating"
+#~ msgstr "正在创建"
+
+#~ msgid "Uploading"
+#~ msgstr "正在上传"
+
+#~ msgid "Waiting"
+#~ msgstr "等待中"
+
+#~ msgid "Sending"
+#~ msgstr "发送中"
+
+#~ msgid "Finished"
+#~ msgstr "完成"
+
+#~ msgid "Please fill report first."
+#~ msgstr "请先填写报告。"
+
+#~ msgid "Unable to create zip file"
+#~ msgstr "无法创建zip压缩文件"
+
+#~ msgid "Enter a search term"
+#~ msgstr "输入搜索内容"
+
+#~ msgid "Debug"
+#~ msgstr "调试"
+
+#~ msgid "Monitoring"
+#~ msgstr "实时视频"
+
+#~ msgid "Record monitor video"
+#~ msgstr "录制监控视频"
+
+#~ msgid "Fragment filter"
+#~ msgstr "碎片过滤器"
+
+#~ msgid "Fragment Filter"
+#~ msgstr "碎片过滤器"
+
+#~ msgid "Position:"
+#~ msgstr "位置："
+
+#~ msgid "Updating Bambu Network plug-in"
+#~ msgstr "正在更新Bambu网络插件"
+
+#~ msgid ""
+#~ "An object is layed over the boundary of plate.\n"
+#~ "Please solve the problem by moving it totally inside or outside plate."
+#~ msgstr ""
+#~ "检测到有对象放置在盘的边界。\n"
+#~ "请把它整体移动到盘内或盘外以解决此问题。"
+
+#~ msgid "Show Model Mesh(TODO)"
+#~ msgstr "显示模型网格"
+
+#~ msgid "Display triangles of models"
+#~ msgstr "显示模型面片"
+
+#~ msgid "Show Model Shadow(TODO)"
+#~ msgstr "显示模型阴影"
+
+#~ msgid "Display shadow of objects"
+#~ msgstr "显示对象阴影"
+
+#~ msgid "Show Printable Box(TODO)"
+#~ msgstr "显示打印区边界"
+
+#~ msgid "Display printable box"
+#~ msgstr "显示打印区边界"
+
+#~ msgid ""
+#~ "Do you want to synchronize your personal data from Bambu Cloud? \n"
+#~ "It ontains the following information:\n"
+#~ "1. The Process presets\n"
+#~ "2. The Filament presets\n"
+#~ "3. The Printer presets\n"
+#~ msgstr ""
+#~ "想从Bambu 云同步你的个人数据吗?\n"
+#~ "包含如下信息:\n"
+#~ "1. 工艺预设\n"
+#~ "2. 打印丝预设\n"
+#~ "3. 打印机预设\n"
+
+#~ msgid "New version of Bambu Studio"
+#~ msgstr "新版本的Bambu Studio"
+
 #~ msgid "Fix model through cloud"
 #~ msgstr "通过云端修复模型"
 
 #~ msgid "Fix model locally"
 #~ msgstr "本地修复模型"
 
-#~ msgid "Arranging %1%"
-#~ msgstr "正在自动摆放%1%"
-
-#~ msgid "Orienting %1%"
-#~ msgstr "自动朝向%1%中..."
-
 #~ msgid "Module"
 #~ msgstr "模块"
+
+#~ msgid ""
+#~ "Heat the nozzle to target \n"
+#~ "temperature"
+#~ msgstr "加热喷嘴到目标温度"
+
+#~ msgid ""
+#~ "Push new filament \n"
+#~ "into extruder"
+#~ msgstr "送出新的耗材丝到挤出机"
+
+#~ msgid "Successfully sent.Will automatically jump to the device page in %s s"
+#~ msgstr "已发送完成，即将自动跳转到设备页面 (%s 秒）"
+
+#~ msgid ""
+#~ "Do you want to synchronize your personal data from Bambu Cloud? \n"
+#~ "Contains the following information:\n"
+#~ "1. The Process presets\n"
+#~ "2. The Filament presets\n"
+#~ "3. The Printer presets\n"
+#~ msgstr ""
+#~ "是否从Bambu云同步您的个人数据？\n"
+#~ "包含以下信息：\n"
+#~ "1. 工艺预设\n"
+#~ "2. 耗材丝预设\n"
+#~ "3. 打印机预设\n"
+
+#~ msgid "Please upgrade your printer first"
+#~ msgstr "请先升级打印机固件"
+
+#~ msgid "Swith cloud environment, Please login again!"
+#~ msgstr "切换云环境，请重新登录!"
+
+#~ msgid ""
+#~ "The firmware versions of printer and AMS are too low.Please update to the "
+#~ "latest version before sending the print job"
+#~ msgstr "打印机和AMS固件版本过低，请更新到最新版本方可发送打印"
+
+#~ msgid "Output file"
+#~ msgstr "输出文件"
+
+#~ msgid ""
+#~ "Don't retract when the travel is in infill area absolutely. That means "
+#~ "the oozing can't been seen"
+#~ msgstr "当完全在填充区域内部空驶时不会抽，即便渗出滴料也是不可见的。"
 
 #~ msgid "⌥+Mouse wheel"
 #~ msgstr "⌥+鼠标滚轮"
@@ -6132,9 +6490,6 @@ msgstr "支撑：正在生长层%d的树枝"
 
 #~ msgid "Vibration Calibration"
 #~ msgstr "振动校准"
-
-#~ msgid "First Layer Inspection"
-#~ msgstr "首层扫描"
 
 #~ msgid "Please select a printer first."
 #~ msgstr "请先选择一台打印机。"
@@ -7187,9 +7542,6 @@ msgstr "支撑：正在生长层%d的树枝"
 #~ "该盘处于锁定状态，\n"
 #~ "无法对其进行自动朝向"
 
-#~ msgid "Export current plate as G-code"
-#~ msgstr "导出当前盘的G-code"
-
 #~ msgid "Choose the position"
 #~ msgstr "选择AMS料仓"
 
@@ -7360,12 +7712,6 @@ msgstr "支撑：正在生长层%d的树枝"
 #~ "Reset to 0.2"
 #~ msgstr "树状支撑碰撞分辨率不可为0。将重置为0.2"
 
-#~ msgid "default value"
-#~ msgstr "默认值"
-
-#~ msgid "parameter name"
-#~ msgstr "参数名称"
-
 #~ msgid "Add..."
 #~ msgstr "添加..."
 
@@ -7417,9 +7763,6 @@ msgstr "支撑：正在生长层%d的树枝"
 
 #~ msgid "Wall around the support"
 #~ msgstr "支撑外壁"
-
-#~ msgid "Thick bridges"
-#~ msgstr "桥接面大层高"
 
 #~ msgid ""
 #~ "If enabled, bridges may look worse but can cover longer distance. If "
@@ -7730,32 +8073,8 @@ msgstr "支撑：正在生长层%d的树枝"
 #~ msgid "Split triangles"
 #~ msgstr "分割三角形"
 
-#~ msgid "Clipping of view"
-#~ msgstr "剪切视图"
-
-#~ msgid "Reset direction"
-#~ msgstr "重置方向"
-
-#~ msgid "Brush size"
-#~ msgstr "画刷尺寸"
-
-#~ msgid "Brush shape"
-#~ msgstr "画刷形状"
-
-#~ msgid "Enforce seam"
-#~ msgstr "添加Z缝"
-
-#~ msgid "Block seam"
-#~ msgstr "屏蔽Z缝"
-
-#~ msgid "Remove selection"
-#~ msgstr "移除绘制"
-
 #~ msgid "Remove all selection"
 #~ msgstr "移除所有绘制"
-
-#~ msgid "Seam painting"
-#~ msgstr "Z缝绘制"
 
 #~ msgid "Paints all facets inside, regardless of their orientation."
 #~ msgstr "绘制所有处于球体内部的面片，无论它们的方向是怎样的。"
@@ -8027,24 +8346,6 @@ msgstr "支撑：正在生长层%d的树枝"
 
 #~ msgid "Remove Instance of the selected object"
 #~ msgstr "删除所选对象的实例"
-
-#~ msgid "Gizmo move"
-#~ msgstr "线框移动"
-
-#~ msgid "Gizmo scale"
-#~ msgstr "线框缩放"
-
-#~ msgid "Gizmo rotate"
-#~ msgstr "旋转物件"
-
-#~ msgid "Gizmo cut"
-#~ msgstr "剪切物件"
-
-#~ msgid "Gizmo Place face on bed"
-#~ msgstr "选择底面"
-
-#~ msgid "Gizmo SLA support points"
-#~ msgstr "SLA支撑点"
 
 #~ msgid "Show &Configuration Folder"
 #~ msgstr "打开配置文件夹"
@@ -8920,9 +9221,6 @@ msgstr "支撑：正在生长层%d的树枝"
 
 #~ msgid "Entering Seam painting!"
 #~ msgstr "开始Z缝绘制！"
-
-#~ msgid "Leaving Seam painting"
-#~ msgstr "推出Z缝绘制"
 
 #~ msgid "Leaving Paint-on supports"
 #~ msgstr "推出支撑绘制"

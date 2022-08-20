@@ -27,6 +27,7 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoPainterBase.hpp"
 #include "slic3r/GUI/BitmapCache.hpp"
+#include "slic3r/Utils/MacDarkMode.hpp"
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
@@ -739,6 +740,15 @@ void GLCanvas3D::set_as_dirty()
     m_dirty = true;
 }
 
+const float GLCanvas3D::get_scale() const
+{
+#if ENABLE_RETINA_GL
+    return m_retina_helper->get_scale_factor();
+#else
+    return 1.0f;
+#endif
+}
+
 unsigned int GLCanvas3D::get_volumes_count() const
 {
     return (unsigned int)m_volumes.volumes.size();
@@ -1349,7 +1359,12 @@ void GLCanvas3D::render(bool only_init)
             right_margin = SLIDER_RIGHT_MARGIN;
             bottom_margin = SLIDER_BOTTOM_MARGIN;
         }
-        wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
+        #if ENABLE_RETINA_GL
+            float sc = m_retina_helper->get_scale_factor();
+            wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin * sc, right_margin);
+        #else
+            wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
+        #endif
     }
 
     wxGetApp().imgui()->render();
@@ -2128,8 +2143,15 @@ void GLCanvas3D::bind_event_handlers()
         m_canvas->Bind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Bind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
         m_canvas->Bind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
-        m_canvas->Bind(wxEVT_KILL_FOCUS, &GLCanvas3D::on_kill_focus, this);
         m_event_handlers_bound = true;
+        
+        m_canvas->Bind(wxEVT_GESTURE_PAN, &GLCanvas3D::on_gesture, this);
+        m_canvas->Bind(wxEVT_GESTURE_ZOOM, &GLCanvas3D::on_gesture, this);
+        m_canvas->Bind(wxEVT_GESTURE_ROTATE, &GLCanvas3D::on_gesture, this);
+        m_canvas->EnableTouchEvents(wxTOUCH_ZOOM_GESTURE | wxTOUCH_ROTATE_GESTURE);
+#if __WXOSX__
+        initGestures(m_canvas->GetHandle(), m_canvas); // for UIPanGestureRecognizer allowedScrollTypesMask
+#endif
     }
 }
 
@@ -2158,9 +2180,11 @@ void GLCanvas3D::unbind_event_handlers()
         m_canvas->Unbind(wxEVT_RIGHT_DCLICK, &GLCanvas3D::on_mouse, this);
         m_canvas->Unbind(wxEVT_PAINT, &GLCanvas3D::on_paint, this);
         m_canvas->Unbind(wxEVT_SET_FOCUS, &GLCanvas3D::on_set_focus, this);
-        m_canvas->Unbind(wxEVT_KILL_FOCUS, &GLCanvas3D::on_kill_focus, this);
-
         m_event_handlers_bound = false;
+        
+        m_canvas->Unbind(wxEVT_GESTURE_PAN, &GLCanvas3D::on_gesture, this);
+        m_canvas->Unbind(wxEVT_GESTURE_ZOOM, &GLCanvas3D::on_gesture, this);
+        m_canvas->Unbind(wxEVT_GESTURE_ROTATE, &GLCanvas3D::on_gesture, this);
     }
 }
 
@@ -2930,6 +2954,40 @@ std::string format_mouse_event_debug_message(const wxMouseEvent &evt)
 }
 #endif /* SLIC3R_DEBUG_MOUSE_EVENTS */
 
+void GLCanvas3D::on_gesture(wxGestureEvent &evt)
+{
+    if (!m_initialized || !_set_current())
+        return;
+
+    auto & camera = wxGetApp().plater()->get_camera();
+    if (evt.GetEventType() == wxEVT_GESTURE_PAN) {
+        auto p = evt.GetPosition();
+        auto d = static_cast<wxPanGestureEvent&>(evt).GetDelta();
+        float z = 0;
+        const Vec3d &p2 = _mouse_to_3d({p.x, p.y}, &z);
+        const Vec3d &p1 = _mouse_to_3d({p.x - d.x, p.y - d.y}, &z);
+        camera.set_target(camera.get_target() + p2 - p1);
+    } else if (evt.GetEventType() == wxEVT_GESTURE_ZOOM) {
+        static float zoom_start = 1;
+        if (evt.IsGestureStart())
+            zoom_start = camera.get_zoom();
+        camera.set_zoom(zoom_start * static_cast<wxZoomGestureEvent&>(evt).GetZoomFactor());
+    } else if (evt.GetEventType() == wxEVT_GESTURE_ROTATE) {
+        PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+        bool rotate_limit = current_printer_technology() != ptSLA;
+        static double last_rotate = 0;
+        if (evt.IsGestureStart())
+            last_rotate = 0;
+        auto rotate = static_cast<wxRotateGestureEvent&>(evt).GetRotationAngle() - last_rotate;
+        last_rotate += rotate;
+        if (plate)
+            camera.rotate_on_sphere_with_target(-rotate, 0, rotate_limit, plate->get_bounding_box().center());
+        else
+            camera.rotate_on_sphere(-rotate, 0, rotate_limit);
+    }
+    m_dirty = true;
+}
+
 void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 {
     if (!m_initialized || !_set_current())
@@ -3038,6 +3096,14 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // Grab keyboard focus for input in gizmo dialogs.
             m_canvas->SetFocus();
 
+        if (evt.LeftDown()) {
+            // Clear hover state in main toolbar
+            wxMouseEvent evt2 = evt;
+            evt2.SetEventType(wxEVT_MOTION);
+            evt2.SetLeftDown(false);
+            m_main_toolbar.on_mouse(evt2, *this);
+        }
+
         if (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())
             mouse_up_cleanup();
 
@@ -3123,7 +3189,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 return;
         }
 
-        if (evt.LeftDown() && (evt.ShiftDown() || evt.AltDown()) && m_picking_enabled) {
+        // BBS: define Alt key to enable volume selection mode
+        m_selection.set_volume_selection_mode(evt.AltDown() ? Selection::Volume : Selection::Instance);
+        if (evt.LeftDown() && evt.ShiftDown() && m_picking_enabled) {
             if (m_gizmos.get_current_type() != GLGizmosManager::SlaSupports
              && m_gizmos.get_current_type() != GLGizmosManager::FdmSupports
              && m_gizmos.get_current_type() != GLGizmosManager::Seam
@@ -3471,17 +3539,12 @@ void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
 {
     m_tooltip_enabled = false;
     if (m_canvas_type == ECanvasType::CanvasPreview) {
+        // update thumbnails and update plate toolbar
+        wxGetApp().plater()->update_platplate_thumbnails();
         _update_imgui_select_plate_toolbar();
     }
     _refresh_if_shown_on_screen();
     m_tooltip_enabled = true;
-}
-
-void GLCanvas3D::on_kill_focus(wxFocusEvent& evt)
-{
-    if (m_canvas_type == ECanvasType::CanvasView3D) {
-        wxGetApp().plater()->update_platplate_thumbnails();
-    }
 }
 
 Size GLCanvas3D::get_canvas_size() const
@@ -4350,7 +4413,7 @@ bool GLCanvas3D::_render_orient_menu(float left, float right, float bottom, floa
     //now change to left_up as {0,0}, and top is 0, bottom is canvas_h
 #if BBS_TOOLBAR_ON_TOP
     const float x = left * float(wxGetApp().plater()->get_camera().get_zoom()) + 0.5f * canvas_w;
-    ImGuiWrapper::push_toolbar_style();
+    ImGuiWrapper::push_toolbar_style(get_scale());
     imgui->set_next_window_pos(x, m_main_toolbar.get_height(), ImGuiCond_Always, 0.5f, 0.0f);
 #else
     const float x = canvas_w - m_main_toolbar.get_width();
@@ -4446,7 +4509,7 @@ bool GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
 #endif
 
     //BBS
-    ImGuiWrapper::push_toolbar_style();
+    ImGuiWrapper::push_toolbar_style(get_scale());
 
     imgui->begin(_L("Arrange options"), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
@@ -5013,7 +5076,7 @@ bool GLCanvas3D::_init_main_toolbar()
 
     item.name = "add";
     item.icon_filename = "toolbar_open.svg";
-    item.tooltip = _utf8(L("Add"));
+    item.tooltip = _utf8(L("Add")) + " [" + GUI::shortkey_ctrl_prefix() + "I]";
     item.sprite_id = 0;
     item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_ADD)); };
     item.enabling_callback = []()->bool {return wxGetApp().plater()->can_add_model(); };
@@ -5051,7 +5114,7 @@ bool GLCanvas3D::_init_main_toolbar()
 
     item.name = "arrange";
     item.icon_filename = "toolbar_arrange.svg";
-    item.tooltip = _utf8(L("Auto arrange"));
+    item.tooltip = _utf8(L("Arrange all objects")) + " [A]\n" + _utf8(L("Arrange objects on selected plates")) + " [Shift+A]";
     item.sprite_id++;
     item.left.action_callback = []() {};
     item.enabling_callback = []()->bool { return wxGetApp().plater()->can_arrange(); };
@@ -6391,40 +6454,33 @@ void GLCanvas3D::_render_paint_toolbar() const
        for (auto filament_name : preset_bundle->filament_presets) {
            for (auto iter = preset_bundle->filaments.lbegin(); iter != preset_bundle->filaments.end(); iter++) {
                if (filament_name.compare(iter->name) == 0) {
-                   filament_types.push_back(iter->config.get_filament_type());
+                   std::string display_filament_type;
+                   iter->config.get_filament_type(display_filament_type);
+                   filament_types.push_back(display_filament_type);
                }
            }
        }
    }
 
-   #ifdef __APPLE__
-   std::string  item_text   = (boost::format("%1% %2%") % (11) % filament_types[0]).str();
-   const ImVec2 label_size  = ImGui::CalcTextSize(item_text.c_str(), NULL, true);
-   int          button_size = label_size.x + item_spacing;
-   #else
-   int button_size  = GLToolbar::Default_Icons_Size * wxGetApp().toolbar_icon_scale() + item_spacing;
-   #endif
+    float button_size  = GLToolbar::Default_Icons_Size * f_scale * wxGetApp().toolbar_icon_scale() + item_spacing;
 
     imgui.set_next_window_pos(0.5f * (canvas_w + (button_size + item_spacing) * extruder_num), button_size + item_spacing * 2, ImGuiCond_Always, 1.0f, 1.0f);
     imgui.begin(_L("Paint Toolbar"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
     bool disabled = !wxGetApp().plater()->can_fillcolor();
     unsigned char rgb[3];
 
+    float max_text = 0;
     for (int i = 0; i < extruder_num; i++) {
-        if (i > 0) {
-            if (filament_types.size() <= i) continue;
-            std::string  item_text  = (boost::format("%1% %2%") % (i + 1) % filament_types[i]).str();
-            const ImVec2 label_size = ImGui::CalcTextSize(item_text.c_str(), NULL, true);
-            #ifdef __WINDOWS__
-            if (i > 8)
-                ImGui::SameLine(0.5 * item_spacing + (button_size - label_size.x) / 2 + (button_size + item_spacing) * i);
-            else
-                ImGui::SameLine((button_size - label_size.x) / 2 + (button_size + item_spacing) * i);
-            #else
-            ImGui::SameLine();
-            #endif
-        }
-            //ImGui::SameLine();
+        std::string item_text = (boost::format("%1%%2%") % (i + 1) % filament_types[i]).str();
+        ImVec2 label_size = ImGui::CalcTextSize(item_text.c_str(), NULL, true);
+        if (label_size.x > button_size)
+               label_size.x  = button_size * 0.6;
+        max_text = std::max(max_text,label_size.x);
+    }
+    for (int i = 0; i < extruder_num; i++) {
+        if (filament_types.size() <= i) continue;
+
+        ImGui::SameLine(item_spacing / 2 + (button_size - max_text) / 2 + (button_size + item_spacing) * i);
         ImGui::PushID(i);
         Slic3r::GUI::BitmapCache::parse_color(colors[i], rgb);
         ImGui::PushStyleColor(ImGuiCol_Button, ImColor(rgb[0], rgb[1], rgb[2]).Value);
@@ -6450,21 +6506,78 @@ void GLCanvas3D::_render_paint_toolbar() const
             ImGui::PopItemFlag();
         ImGui::PopID();
     }
-
     for (int i = 0; i < extruder_num; i++){
         if (filament_types.size() <= i) continue;
         //TODO use filament type from filament management, current use PLA by default
-        std::string item_text = (boost::format("%1% %2%") % (i + 1) % filament_types[i]).str();
+        std::string item_text = (boost::format("%1%%2%") % (i + 1) % filament_types[i]).str();
         const ImVec2 label_size = ImGui::CalcTextSize(item_text.c_str(), NULL, true);
 
-        ImGui::SameLine(item_spacing + (button_size - label_size.x) / 2 + (button_size + item_spacing) * i);
+        int len = strlen(filament_types[i].c_str());
 
+        ImGui::SameLine(item_spacing / 2 + (button_size - max_text) / 2 + (button_size + item_spacing) * i);
+
+        int count = 0;
+        if (label_size.x > button_size)
+        {
+            for (int j = 0; j < filament_types[i].size(); j++)
+            {
+                 if(std::isalpha(filament_types[i][j]))
+                    count++;
+                 else
+                     break;
+            }
+        }
+
+        if (i > 8)
+        {
+            if (label_size.x > button_size)
+            {
+                if(count * ImGui::GetFontSize() > button_size){
+                    if ((len - (count + 1)) <= 3)
+                        item_text = "\t" + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count) + "\n" + "\t" + filament_types[i].substr(count, len);
+                    else
+                        item_text = "\t" + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count + 1) + "\n"+ filament_types[i].substr(count + 1, len);
+                } else {
+                    if (count <= 4)
+                        item_text = "\t" + std::to_string(i + 1) + "\n" + "   " + filament_types[i].substr(0, count + 1) + "\n" + filament_types[i].substr(count + 1, len);
+                    else
+                        item_text = "\t" + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count + 1) + "\n" + filament_types[i].substr(count + 1, len);
+                }
+            }
+            else
+            {
+                item_text = (boost::format("\t%1%\n   %2%") % (i + 1) % filament_types[i]).str();
+            }
+        }
+        else
+        {
+            if (label_size.x > button_size)
+            {
+                if(count * ImGui::GetFontSize() > button_size){
+                    if ((len - (count + 1)) <= 3)
+                        item_text = "\t " + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count) + "\n" + "\t" + filament_types[i].substr(count, len);
+                    else
+                        item_text = "\t " + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count + 1) + "\n"+ filament_types[i].substr(count + 1, len);
+                } else {
+                    if (count <= 4)
+                        item_text = "\t " + std::to_string(i + 1) + "\n" + "   " + filament_types[i].substr(0, count + 1) + "\n" + filament_types[i].substr(count + 1, len);
+                    else
+                        item_text = "\t " + std::to_string(i + 1) + "\n" + filament_types[i].substr(0, count + 1) + "\n" + filament_types[i].substr(count + 1, len);
+                }
+            }
+            else
+            {
+               item_text = (boost::format("\t  %1%\n\t%2%") % (i + 1) % filament_types[i]).str();
+            }
+        }
         Slic3r::GUI::BitmapCache::parse_color(colors[i], rgb);
         float gray = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
-        if (gray < 80)
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), item_text.c_str());
-        else
-            ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), item_text.c_str());
+
+        if (gray < 80){
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), item_text.c_str());   
+        } else{
+                ImGui::TextColored(ImVec4(0.0f, 0.0f, 0.0f, 1.0f), item_text.c_str());
+        } 
     }
     ImGui::AlignTextToFramePadding();
     imgui.end();
@@ -6480,7 +6593,7 @@ void GLCanvas3D::_render_explosion_control() const
 
     ImGuiWrapper* imgui = wxGetApp().imgui();
 
-    ImGuiWrapper::push_toolbar_style();
+    ImGuiWrapper::push_toolbar_style(get_scale());
 
     auto canvas_w = float(get_canvas_size().get_width());
     auto canvas_h = float(get_canvas_size().get_height());
@@ -6550,7 +6663,7 @@ void GLCanvas3D::_render_assemble_info() const
     ImGui::PushFont(font);
     ImGui::PopFont();
     imgui->set_next_window_pos(canvas_w - window_width, 0.0f, ImGuiCond_Always, 0, 0);
-    ImGuiWrapper::push_toolbar_style();
+    ImGuiWrapper::push_toolbar_style(get_scale());
     imgui->begin(_L("Assembly Info"), ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     font->Scale = origScale;
     ImGui::PushFont(font);
@@ -7468,8 +7581,8 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     case EWarning::SlaSupportsOutside: text = ("SLA supports outside the print area were detected."); error = ErrorType::PLATER_ERROR; break;
     case EWarning::SomethingNotShown:  text = _u8L("Only the object being edit is visible."); break;
     case EWarning::ObjectClashed:
-        text = _u8L("An object is layed over the boundary of plate.\n"
-            "Please solve the problem by moving it totally inside or outside plate.");
+        text = _u8L("An object is laid over the boundary of plate or exceeds the height limit.\n"
+            "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.");
         error = ErrorType::PLATER_ERROR;
         break;
     }

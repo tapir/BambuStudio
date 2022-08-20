@@ -36,15 +36,15 @@
 			},
 			{
 				"type": "po",
-				"pattern": "bbl/i18n/zh_cn/BambuStudio_zh_CN.po",
-				"lang": "zh_cn"
+				"pattern": "bbl/i18n/hu/BambuStudio_hu.po",
+				"lang": "hu"
 			}
 		]
 	},
 	"download": {
 		"folder": "bbl/i18n",
 		"files": {
-			"output": "${lang}/BambuStudio_${lang}_new.po"
+			"output": "${lang}/BambuStudio_${lang}.po"
 		}
 	}
 }

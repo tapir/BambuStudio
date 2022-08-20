@@ -94,9 +94,9 @@ AuFile::AuFile(wxWindow *parent, fs::path file_path, wxString file_name, Auxilia
     cover_text_right = _L("Rename");
     cover_text_cover = _L("Cover");
 
-    m_file_cover     = create_scaled_bitmap("auxiliary_cover", this, 50);
-    m_file_edit_mask = create_scaled_bitmap("auxiliary_edit_mask", this, 43);
-    m_file_delete    = create_scaled_bitmap("auxiliary_delete", this, 28);
+    m_file_cover     = ScalableBitmap(this, "auxiliary_cover", 50);
+    m_file_edit_mask = ScalableBitmap(this, "auxiliary_edit_mask", 43);
+    m_file_delete    = ScalableBitmap(this, "auxiliary_delete", 28);
 
     auto m_text_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(300), FromDIP(40)), wxTAB_TRAVERSAL);
     m_text_panel->SetBackgroundColour(AUFILE_GREY300);
@@ -183,7 +183,7 @@ void AuFile::PaintForeground(wxDC &dc)
     wxSize size = wxSize(FromDIP(300), FromDIP(300));
 
     if (m_hover) {
-        dc.DrawBitmap(m_file_edit_mask, 0, size.y - m_file_edit_mask.GetSize().y);
+        dc.DrawBitmap(m_file_edit_mask.bmp(), 0, size.y - m_file_edit_mask.GetBmpSize().y);
         dc.SetFont(Label::Body_14);
         dc.SetTextForeground(*wxWHITE);
         if (m_type == MODEL_PICTURE) {
@@ -191,14 +191,14 @@ void AuFile::PaintForeground(wxDC &dc)
             auto sizet = dc.GetTextExtent(cover_text_left);
             auto pos   = wxPoint(0, 0);
             pos.x      = (size.x / 2 - sizet.x) / 2;
-            pos.y      = (size.y - (m_file_edit_mask.GetSize().y + sizet.y) / 2);
+            pos.y      = (size.y - (m_file_edit_mask.GetBmpSize().y + sizet.y) / 2);
             dc.DrawText(cover_text_left, pos);
 
             // right text
             sizet = dc.GetTextExtent(cover_text_right);
             pos   = wxPoint(0, 0);
             pos.x = size.x / 2 + (size.x / 2 - sizet.x) / 2;
-            pos.y = (size.y - (m_file_edit_mask.GetSize().y + sizet.y) / 2);
+            pos.y = (size.y - (m_file_edit_mask.GetBmpSize().y + sizet.y) / 2);
             dc.DrawText(cover_text_right, pos);
 
             // Split
@@ -206,21 +206,21 @@ void AuFile::PaintForeground(wxDC &dc)
             dc.SetBrush(AUFILE_GREY700);
             pos   = wxPoint(0, 0);
             pos.x = size.x / 2 - 1;
-            pos.y = size.y - FromDIP(30) - (m_file_edit_mask.GetSize().y - FromDIP(30)) / 2;
+            pos.y = size.y - FromDIP(30) - (m_file_edit_mask.GetBmpSize().y - FromDIP(30)) / 2;
             dc.DrawRectangle(pos.x, pos.y, 2, FromDIP(30));
         } else {
             // right text
             auto sizet = dc.GetTextExtent(cover_text_right);
             auto pos   = wxPoint(0, 0);
             pos.x = (size.x  - sizet.x) / 2;
-            pos.y = (size.y - (m_file_edit_mask.GetSize().y + sizet.y) / 2);
+            pos.y = (size.y - (m_file_edit_mask.GetBmpSize().y + sizet.y) / 2);
             dc.DrawText(cover_text_right, pos);
         }       
     }
 
     if (m_cover) {
         dc.SetTextForeground(*wxWHITE);
-        dc.DrawBitmap(m_file_cover, size.x - m_file_cover.GetSize().x, 0);
+        dc.DrawBitmap(m_file_cover.bmp(), size.x - m_file_cover.GetBmpSize().x, 0);
         dc.SetFont(Label::Body_12);
         auto sizet = dc.GetTextExtent(cover_text_cover);
         auto pos   = wxPoint(0, 0);
@@ -229,7 +229,7 @@ void AuFile::PaintForeground(wxDC &dc)
         dc.DrawText(cover_text_cover, pos);
     }
 
-    if (m_hover) { dc.DrawBitmap(m_file_delete, size.x - m_file_delete.GetSize().x - FromDIP(15), FromDIP(15)); }
+    if (m_hover) { dc.DrawBitmap(m_file_delete.bmp(), size.x - m_file_delete.GetBmpSize().x - FromDIP(15), FromDIP(15)); }
 }
 
 void AuFile::on_mouse_enter(wxMouseEvent &evt)
@@ -337,7 +337,7 @@ void AuFile::on_mouse_left_up(wxMouseEvent &evt)
 
     auto pos = evt.GetPosition();
     // set cover
-    auto mask_size    = m_file_edit_mask.GetSize();
+    auto mask_size    = m_file_edit_mask.GetBmpSize();
     auto cover_left   = 0;
     auto cover_top    = size.y - mask_size.y;
     auto cover_right  = mask_size.x / 2;
@@ -353,10 +353,10 @@ void AuFile::on_mouse_left_up(wxMouseEvent &evt)
     if (pos.x > rename_left && pos.x < rename_right && pos.y > rename_top && pos.y < rename_bottom) { on_set_rename(); }
 
     // close
-    auto close_left   = size.x - m_file_delete.GetSize().x - FromDIP(15);
+    auto close_left   = size.x - m_file_delete.GetBmpSize().x - FromDIP(15);
     auto close_top    = FromDIP(15);
     auto close_right  = size.x - FromDIP(15);
-    auto close_bottom = m_file_delete.GetSize().y + FromDIP(15);
+    auto close_bottom = m_file_delete.GetBmpSize().y + FromDIP(15);
     if (pos.x > close_left && pos.x < close_right && pos.y > close_top && pos.y < close_bottom) { on_set_delete(); }
 }
 
@@ -449,9 +449,9 @@ AuFile::~AuFile() {}
 
 void AuFile::msw_rescale() 
 { 
-    m_file_cover     = create_scaled_bitmap("auxiliary_cover", this, 50);
-    m_file_edit_mask = create_scaled_bitmap("auxiliary_edit_mask", this, 43);
-    m_file_delete    = create_scaled_bitmap("auxiliary_delete", this, 28);
+    m_file_cover     = ScalableBitmap(this, "auxiliary_cover", 50);
+    m_file_edit_mask = ScalableBitmap(this, "auxiliary_edit_mask", 43);
+    m_file_delete    = ScalableBitmap(this, "auxiliary_delete", 28);
 
     if (m_type == MODEL_PICTURE) {
         if (m_file_path.empty()) { return;}
@@ -501,7 +501,7 @@ AuFolderPanel::AuFolderPanel(wxWindow *parent, AuxiliaryFolderType type, wxWindo
     m_button_add = new Button(m_scrolledWindow, _L("Add"), "auxiliary_add_file", 12, 12);
     m_button_add->SetBackgroundColor(btn_bg_white);
     m_button_add->SetBorderColor(btn_bd_white);
-    m_button_add->SetMinSize(wxSize(FromDIP(80), FromDIP(24)));
+    m_button_add->SetMinSize(wxSize(-1, FromDIP(24)));
     m_button_add->SetCornerRadius(12);
     m_button_add->SetFont(Label::Body_14);
     // m_button_add->Bind(wxEVT_LEFT_UP, &AuxiliaryPanel::on_add, this);
@@ -563,7 +563,7 @@ void AuFolderPanel::update(std::vector<fs::path> paths)
 
 void AuFolderPanel::msw_rescale() 
 {
-    m_button_add->SetMinSize(wxSize(FromDIP(80), FromDIP(24)));
+    m_button_add->SetMinSize(wxSize(-1, FromDIP(24)));
     for (auto i = 0; i < m_aufiles_list.GetCount(); i++) {
         AuFiles *aufile = m_aufiles_list[i];
         aufile->file->msw_rescale();
@@ -707,21 +707,14 @@ void AuxiliaryPanel::init_tabpanel()
     m_tabpanel->SetBackgroundColour(*wxWHITE);
     m_tabpanel->Bind(wxEVT_BOOKCTRL_PAGE_CHANGED, [this](wxBookCtrlEvent &e) { ; });
 
-#if !BBL_RELEASE_TO_PUBLIC
     m_designer_panel = new DesignerPanel(m_tabpanel, AuxiliaryFolderType::DESIGNER);
-#endif
-
     m_pictures_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::MODEL_PICTURE);
     m_bill_of_materials_panel = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::BILL_OF_MATERIALS);
     m_assembly_panel          = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::ASSEMBLY_GUIDE);
     m_others_panel            = new AuFolderPanel(m_tabpanel, AuxiliaryFolderType::OTHERS);
 
-#if !BBL_RELEASE_TO_PUBLIC
     m_tabpanel->AddPage(m_designer_panel, _L("Basic Info"), "", true);
     m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), "", false);
-#else
-    m_tabpanel->AddPage(m_pictures_panel, _L("Pictures"), "", true);
-#endif
     m_tabpanel->AddPage(m_bill_of_materials_panel, _L("Bill of Materials"), "", false);
     m_tabpanel->AddPage(m_assembly_panel, _L("Assembly Guide"), "", false);
     m_tabpanel->AddPage(m_others_panel, _L("Others"), "", false);
@@ -743,9 +736,7 @@ void AuxiliaryPanel::msw_rescale() {
     m_bill_of_materials_panel->msw_rescale();
     m_assembly_panel->msw_rescale();
     m_others_panel->msw_rescale();
-#if !BBL_RELEASE_TO_PUBLIC
     m_designer_panel->msw_rescale();
-#endif
 }
 
 void AuxiliaryPanel::on_size(wxSizeEvent &event)
@@ -897,9 +888,7 @@ void AuxiliaryPanel::Reload(wxString aux_path)
             fs::create_directory(folder_path.ToStdWstring());
         }
         update_all_panel();
-        #if !BBL_RELEASE_TO_PUBLIC
         m_designer_panel->update_info();
-        #endif
         return;
     }
 
@@ -947,9 +936,7 @@ void AuxiliaryPanel::Reload(wxString aux_path)
 
     update_all_panel();
     update_all_cover();
-    #if !BBL_RELEASE_TO_PUBLIC
     m_designer_panel->update_info();
-    #endif
 }
 
 void AuxiliaryPanel::update_all_panel()

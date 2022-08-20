@@ -1070,7 +1070,6 @@ void GCodeViewer::reset()
     }
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
-    m_shell_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
     m_tools.m_tool_colors = std::vector<Color>();
     m_tools.m_tool_visibles = std::vector<bool>();
@@ -4423,7 +4422,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
         const bool visible = m_buffers[buffer_id(type)].visible;
         if (type == EMoveType::Travel) {
-            //TODO display travel time, salt.wei
+            //TODO display travel time
             append_option_item_with_type(type, Travel_Colors[0], _u8L("Travel"), visible);
         }
         else if (type == EMoveType::Seam)
@@ -4988,7 +4987,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, imperial_units ? "%.2f in" : "%.2f m", ps.total_used_filament / /*1000*/koef);
         imgui.text(buf);
         ImGui::SameLine();
-        ::sprintf(buf, "  %.2f g", ps.total_weight);
+        double unit_conver = imperial_units ? GizmoObjectManipulation::oz_to_g : 1;
+        ::sprintf(buf, imperial_units ?"  %.2f oz":"  %.2f g", ps.total_weight / unit_conver);
         imgui.text(buf);
 
         auto role_time = [time_mode](ExtrusionRole role) {

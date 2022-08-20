@@ -13,6 +13,8 @@
 #include <wx/textctrl.h>
 #include <wx/statline.h>
 #include "Widgets/Button.hpp"
+#include "BBLStatusBar.hpp"
+#include "BBLStatusBarSend.hpp"
 
 class wxBoxSizer;
 class wxCheckBox;
@@ -120,7 +122,7 @@ public:
 	virtual ~WarningDialog() = default;
 };
 
-#ifdef _WIN32
+#if 1
 // Generic static line, used intead of wxStaticLine
 class StaticLine: public wxTextCtrl
 {
@@ -363,7 +365,6 @@ public:
 private:
     wxString msg;
 };
-
 
 }
 }

@@ -17,6 +17,7 @@
 #include "MediaPlayCtrl.h"
 #include "AMSSetting.hpp"
 #include "Calibration.hpp"
+#include "PrintOptionsDialog.hpp"
 #include "AMSMaterialsSetting.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/AxisCtrlButton.hpp"
@@ -26,41 +27,69 @@
 #include "Widgets/ProgressBar.hpp"
 #include "Widgets/ImageSwitchButton.hpp"
 #include "Widgets/AMSControl.hpp"
-
-
+#include "UpdateErrorMessage.hpp"
+#include "Widgets/wxStaticText2.hpp"
 class StepIndicator;
 
-#define COMMAND_TIMEOUT         2
+#define COMMAND_TIMEOUT_U0      15
+#define COMMAND_TIMEOUT         5
 
 namespace Slic3r {
 namespace GUI {
 
 enum MonitorStatus {
-    MONITOR_UNKNOWN = 0,
-    MONITOR_NORMAL = 1 << 1,
-    MONITOR_NO_PRINTER = 1 << 2,
-    MONITOR_DISCONNECTED = 1 << 3,
+    MONITOR_UNKNOWN             = 0,
+    MONITOR_NORMAL              = 1 << 1,
+    MONITOR_NO_PRINTER          = 1 << 2,
+    MONITOR_DISCONNECTED        = 1 << 3,
     MONITOR_DISCONNECTED_SERVER = 1 << 4,
+    MONITOR_CONNECTING          = 1 << 5,
+};
+
+enum CameraRecordingStatus {
+    RECORDING_NONE,
+    RECORDING_OFF_NORMAL,
+    RECORDING_OFF_HOVER,
+    RECORDING_ON_NORMAL,
+    RECORDING_ON_HOVER,
+};
+
+enum CameraTimelapseStatus {
+    TIMELAPSE_NONE,
+    TIMELAPSE_OFF_NORMAL,
+    TIMELAPSE_OFF_HOVER,
+    TIMELAPSE_ON_NORMAL,
+    TIMELAPSE_ON_HOVER,
 };
 
 class StatusBasePanel : public wxScrolledWindow
 {
 protected:
     wxBitmap m_item_placeholder;
-    wxBitmap m_thumbnail_placeholder;
-    wxBitmap m_thumbnail_sdcard;
+    ScalableBitmap m_thumbnail_placeholder;
+    ScalableBitmap m_thumbnail_sdcard;
     wxBitmap m_bitmap_item_prediction;
     wxBitmap m_bitmap_item_cost;
     wxBitmap m_bitmap_item_print;
-    wxBitmap m_bitmap_speed;
-    wxBitmap m_bitmap_speed_active;
-    wxBitmap m_bitmap_axis_home;
-    wxBitmap m_bitmap_lamp_on;
-    wxBitmap m_bitmap_lamp_off;
-    wxBitmap m_bitmap_fan_on;
-    wxBitmap m_bitmap_fan_off;
+    ScalableBitmap m_bitmap_speed;
+    ScalableBitmap m_bitmap_speed_active;
+    ScalableBitmap m_bitmap_axis_home;
+    ScalableBitmap m_bitmap_lamp_on;
+    ScalableBitmap m_bitmap_lamp_off;
+    ScalableBitmap m_bitmap_fan_on;
+    ScalableBitmap m_bitmap_fan_off;
     wxBitmap m_bitmap_extruder;
+
+    CameraRecordingStatus m_state_recording{CameraRecordingStatus::RECORDING_NONE};
+    CameraTimelapseStatus m_state_timelapse{CameraTimelapseStatus::TIMELAPSE_NONE};
+
+
+    CameraItem *m_timelapse_button;
+    CameraItem *m_recording_button;
+
     wxBitmap m_bitmap_camera;
+    wxBitmap m_bitmap_sdcard_state_on;
+    wxBitmap m_bitmap_sdcard_state_off;
 
     /* title panel */
     wxPanel *       media_ctrl_panel;
@@ -70,8 +99,12 @@ protected:
 
     wxStaticText *  m_staticText_monitoring;
     wxStaticText *  m_staticText_timelapse;
-    wxStaticBitmap* m_bitmap_camera_img;
     SwitchButton *  m_bmToggleBtn_timelapse;
+
+    wxStaticBitmap *m_bitmap_camera_img;
+    wxStaticBitmap *m_bitmap_recording_img;
+    wxStaticBitmap *m_bitmap_sdcard_on_img;
+    wxStaticBitmap *m_bitmap_sdcard_off_img;
 
 
     wxMediaCtrl2 *  m_media_ctrl;
@@ -87,6 +120,7 @@ protected:
     Button *        m_button_report;
     Button *        m_button_pause_resume;
     Button *        m_button_abort;
+    Button *        m_button_clean;
 
     wxStaticText *  m_text_tasklist_caption;
 
@@ -125,6 +159,7 @@ protected:
     wxStaticText *  m_ams_debug;
     bool            m_show_ams_group{false};
     AMSControl*     m_ams_control;
+    RoundedRectangle* m_ams_control_box;
     wxStaticBitmap *m_ams_extruder_img;
     wxStaticBitmap* m_bitmap_extruder_img;
     wxPanel *       m_panel_separator_right;
@@ -133,9 +168,13 @@ protected:
     wxBoxSizer *    m_printing_sizer;
     wxBoxSizer *    m_tasklist_sizer;
     wxBoxSizer *    m_tasklist_caption_sizer;
+    wxPanel*        m_panel_error_txt;
+    wxPanel*        m_staticline;
+    wxStaticText2 *  m_error_text;
     wxStaticText*   m_staticText_calibration_caption;
     wxStaticText*   m_staticText_calibration_caption_top;
     wxStaticText*   m_calibration_text;
+    Button*         m_options_btn;
     Button*         m_calibration_btn;
     StepIndicator*  m_calibration_flow;
 
@@ -182,10 +221,12 @@ public:
     wxBoxSizer *create_extruder_control(wxWindow *parent);
 
     void reset_temp_misc_control();
-
+    int before_error_code = 0;
     wxBoxSizer *create_ams_group(wxWindow *parent);
+    wxBoxSizer *create_settings_group(wxWindow *parent);
 
     void show_ams_group(bool show = true);
+    void upodate_camera_state(bool recording, bool timelapse, bool has_sdcard);
 };
 
 
@@ -200,14 +241,14 @@ protected:
     std::shared_ptr<CameraPopup> m_camera_popup;
     std::vector<SliceInfoPanel *> slice_info_list;
     AMSSetting *m_ams_setting_dlg{nullptr};
-    CalibrationDialog*   calibration_dlg{nullptr};
+    PrintOptionsDialog*  print_options_dlg { nullptr };
+    CalibrationDialog*   calibration_dlg {nullptr};
     AMSMaterialsSetting *m_filament_setting_dlg{nullptr};
 
     wxString     m_request_url;
     bool         m_start_loading_thumbnail = false;
     bool         m_load_sdcard_thumbnail = false;
     wxWebRequest web_request;
-
     bool bed_temp_input    = false;
     bool nozzle_temp_input = false;
     int speed_lvl = 1; // 0 - 3
@@ -217,9 +258,8 @@ protected:
     std::map<wxString, wxImage> img_list; // key: url, value: wxBitmap png Image
     std::vector<Button *>       m_buttons;
     int last_status;
-    
     void init_scaled_buttons();
-
+    void update_error_message();
     void create_tasklist_info();
     void clean_tasklist_info();
     void show_task_list_info(bool show = true);
@@ -227,6 +267,9 @@ protected:
 
     void on_subtask_pause_resume(wxCommandEvent &event);
     void on_subtask_abort(wxCommandEvent &event);
+    void on_subtask_clean(wxCommandEvent &event);
+    void on_update_error_message(wxCommandEvent &event);
+    void error_info_reset();
 
     /* axis control */
     void on_axis_ctrl_xy(wxCommandEvent &event);
@@ -260,10 +303,14 @@ protected:
     void on_nozzle_fan_switch(wxCommandEvent &event);
     void on_thumbnail_enter(wxMouseEvent &event);
     void on_thumbnail_leave(wxMouseEvent &event);
-    void on_camera_enter(wxMouseEvent& event);
+    void on_switch_recording(wxMouseEvent &event);
+    void on_camera_enter(wxMouseEvent &event);
     void on_camera_leave(wxMouseEvent& event);
     void on_auto_leveling(wxCommandEvent &event);
     void on_xyz_abs(wxCommandEvent &event);
+
+    /* print options */
+    void on_show_print_options(wxCommandEvent &event);
 
     /* calibration */
     void on_start_calibration(wxCommandEvent &event);
@@ -272,11 +319,11 @@ protected:
     /* update apis */
     void update(MachineObject* obj);
     void show_printing_status(bool ctrl_area = true, bool temp_area = true);
+    void update_left_time(int mc_left_time);
     void update_subtask(MachineObject *obj);
     void update_cloud_subtask(MachineObject *obj);
     void update_sdcard_subtask(MachineObject *obj);
     void update_temp_ctrl(MachineObject *obj);
-    void show_unload_ctrl();
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
     void update_cali(MachineObject* obj);
@@ -305,16 +352,17 @@ public:
     long           last_ams_version { -1 };
 
     std::vector<int> last_stage_list_info;
+    boost::thread *  get_error_message_thread{nullptr};
 
     bool is_stage_list_info_changed(MachineObject* obj);
 
     void set_default();
     void show_status(int status);
 
+    void set_hold_count(int& count);
+
     void msw_rescale();
 };
-
-
 }
 }
 #endif

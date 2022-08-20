@@ -11,6 +11,7 @@
 #include "PartPlate.hpp"
 
 #define TOPBAR_ICON_SIZE  18
+#define TOPBAR_TITLE_WIDTH  300
 
 using namespace Slic3r;
 
@@ -243,7 +244,7 @@ void BBLTopbar::Init(wxFrame* parent)
     this->AddSpacer(FromDIP(10));
     this->AddStretchSpacer(1);
 
-    m_title_item = this->AddLabel(ID_TITLE, "", FromDIP(300));
+    m_title_item = this->AddLabel(ID_TITLE, "", FromDIP(TOPBAR_TITLE_WIDTH));
     m_title_item->SetAlignment(wxCENTER);
 
     this->AddSpacer(FromDIP(10));
@@ -402,6 +403,9 @@ wxMenu* BBLTopbar::GetTopMenu()
 
 void BBLTopbar::SetTitle(wxString title)
 {
+    wxGCDC dc(this);
+    title = wxControl::Ellipsize(title, dc, wxELLIPSIZE_END, FromDIP(TOPBAR_TITLE_WIDTH));
+
     m_title_item->SetLabel(title);
     m_title_item->SetAlignment(wxALIGN_CENTRE_HORIZONTAL);
     this->Refresh();
@@ -489,6 +493,9 @@ void BBLTopbar::OnFullScreen(wxAuiToolBarEvent& event)
         m_frame->Restore();
     }
     else {
+        wxDisplay display(wxDisplay::GetFromWindow(this));
+        auto      size = display.GetClientArea().GetSize();
+        m_frame->SetMaxSize(size + wxSize{16, 16});
         m_normalRect = m_frame->GetRect();
         m_frame->Maximize();
     }
@@ -501,17 +508,25 @@ void BBLTopbar::OnCloseFrame(wxAuiToolBarEvent& event)
 
 void BBLTopbar::OnMouseLeftDClock(wxMouseEvent& mouse)
 {
+    wxPoint mouse_pos = ::wxGetMousePosition();
     // check whether mouse is not on any tool item
     if (this->FindToolByCurrentPosition() != NULL &&
         this->FindToolByCurrentPosition() != m_title_item) {
         mouse.Skip();
         return;
     }
+#ifdef __W1XMSW__
+    ::PostMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDBLCLK, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
+    return;
+#endif //  __WXMSW__
 
     if (m_frame->IsMaximized()) {
         m_frame->Restore();
     }
     else {
+        wxDisplay display(wxDisplay::GetFromWindow(this));
+        auto      size = display.GetClientArea().GetSize();
+        m_frame->SetMaxSize(size + wxSize{16, 16});
         m_normalRect = m_frame->GetRect();
         m_frame->Maximize();
     }
@@ -557,16 +572,23 @@ void BBLTopbar::OnMouseLeftDown(wxMouseEvent& event)
     wxPoint frame_pos = m_frame->GetScreenPosition();
     m_delta = mouse_pos - frame_pos;
 
-    if (FindToolByCurrentPosition() == NULL)
+    if (FindToolByCurrentPosition() == NULL 
+        || this->FindToolByCurrentPosition() == m_title_item)
     {
         CaptureMouse();
+#ifdef __WXMSW__
+        ReleaseMouse();
+        ::PostMessage((HWND) m_frame->GetHandle(), WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(mouse_pos.x, mouse_pos.y));
+        return;
+#endif //  __WXMSW__
     }
-
+    
     event.Skip();
 }
 
 void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 {
+    wxPoint mouse_pos = ::wxGetMousePosition();
     if (HasCapture())
     {
         ReleaseMouse();
@@ -577,7 +599,8 @@ void BBLTopbar::OnMouseLeftUp(wxMouseEvent& event)
 
 void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
 {
-    wxPoint mouse_pos = event.GetPosition();
+    wxPoint mouse_pos = ::wxGetMousePosition();
+
     if (!HasCapture()) {
         //m_frame->OnMouseMotion(event);
 
@@ -587,7 +610,6 @@ void BBLTopbar::OnMouseMotion(wxMouseEvent& event)
 
     if (event.Dragging() && event.LeftIsDown())
     {
-        wxPoint mouse_pos = ::wxGetMousePosition();
         // leave max state and adjust position 
         if (m_frame->IsMaximized()) {
             wxRect rect = m_frame->GetRect();

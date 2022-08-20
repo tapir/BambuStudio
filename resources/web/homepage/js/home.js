@@ -42,6 +42,20 @@ function HandleStudio( pVal )
 		
 		GotoMenu(strName);
 	}
+	else if( strCmd=="network_plugin_installtip" )
+	{
+		let nShow=pVal["show"]*1;
+		
+	    if(nShow==1)
+		{
+			$("#NoPluginTip").show();
+			$("#NoPluginTip").css("display","flex");
+		}
+		else
+		{
+			$("#NoPluginTip").hide();
+		}
+	}	
 }
 
 function GotoMenu( strMenu )
@@ -192,4 +206,25 @@ function OnLogOut()
 	SendWXMessage( JSON.stringify(tSend) );	
 }
 
-window.postMessage = HandleStudio
+function BeginDownloadNetworkPlugin()
+{
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="begin_network_plugin_download";
+	
+	SendWXMessage( JSON.stringify(tSend) );		
+}
+
+function OutputKey(keyCode, isCtrlDown, isShiftDown, isCmdDown) {
+	var tSend = {};
+	tSend['sequence_id'] = Math.round(new Date() / 1000);
+	tSend['command'] = "get_web_shortcut";
+	tSend['key_event'] = {};
+	tSend['key_event']['key'] = keyCode;
+	tSend['key_event']['ctrl'] = isCtrlDown;
+	tSend['key_event']['shift'] = isShiftDown;
+	tSend['key_event']['cmd'] = isCmdDown;
+
+	SendWXMessage(JSON.stringify(tSend));
+}
+window.postMessage = HandleStudio;

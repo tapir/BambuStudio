@@ -196,7 +196,7 @@ void ObjectDataViewModelNode::set_printable_icon(PrintIndicator printable)
 void ObjectDataViewModelNode::set_action_icon(bool enable)
 {
     m_action_enable = enable;
-    auto undo = enable ? "undo" : "dot";
+    auto undo = enable ? "lock_normal" : "dot";
     m_action_icon_name = m_type & itPlate ? "dot" :
                          m_type & itObject ? undo :
                          m_type & (itVolume | itLayer) ? undo : /*m_type & itInstance*/ "set_separate_obj";
@@ -1938,9 +1938,13 @@ wxDataViewItem  ObjectDataViewModel::GetObjectItem(const ModelObject* mo) const
 wxDataViewItem  ObjectDataViewModel::GetVolumeItem(const wxDataViewItem& parent, int vol_idx) const
 {
     ObjectDataViewModelNode* obj_node = (ObjectDataViewModelNode*)parent.GetID();
-    for (auto child : obj_node->GetChildren()) {
-        if (child->GetType() == itVolume && child->GetIdx() == vol_idx)
-            return wxDataViewItem(child);
+
+    // BBS
+    if (obj_node != nullptr) {
+        for (auto child : obj_node->GetChildren()) {
+            if (child->GetType() == itVolume && child->GetIdx() == vol_idx)
+                return wxDataViewItem(child);
+        }
     }
 
     return wxDataViewItem(nullptr);

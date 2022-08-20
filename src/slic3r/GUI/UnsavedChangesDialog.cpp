@@ -955,7 +955,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         (*btn)->SetMinSize(UNSAVE_CHANGE_DIALOG_BUTTON_SIZE);
         (*btn)->SetCornerRadius(12);
 
-        (*btn)->Bind(wxEVT_LEFT_DOWN, [this, close_act, dependent_presets](wxEvent &) {
+        (*btn)->Bind(wxEVT_BUTTON, [this, close_act, dependent_presets](wxEvent &) {
             bool save_names_and_types = close_act == Action::Save || (close_act == Action::Transfer && ActionButtons::KEEP & m_buttons);
             if (save_names_and_types && !save(dependent_presets, close_act == Action::Save)) return;
             close(close_act);
@@ -1188,9 +1188,10 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
     int orig_opt_idx = -1;
     int opt_idx = -1;
     int pos = opt_key.find("#");
+    std::string temp_str = opt_key;
     if (pos > 0) {
-        boost::erase_head(opt_key, pos + 1);
-        orig_opt_idx = static_cast<size_t>(atoi(opt_key.c_str()));
+        boost::erase_head(temp_str, pos + 1);
+        orig_opt_idx = static_cast<size_t>(atoi(temp_str.c_str()));
     }
     opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
     opt_key = get_pure_opt_key(opt_key);
